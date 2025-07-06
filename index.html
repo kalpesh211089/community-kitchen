@@ -287,22 +287,40 @@
         }
         
         .setup-notice {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
         }
         
+        .setup-notice.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .setup-notice.warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        
         .setup-notice h4 {
-            color: #856404;
+            color: #155724;
             margin-bottom: 10px;
         }
         
-        .setup-notice p {
+        .setup-notice.warning h4 {
             color: #856404;
+        }
+        
+        .setup-notice p {
+            color: #155724;
             font-size: 14px;
+        }
+        
+        .setup-notice.warning p {
+            color: #856404;
         }
         
         .empty-state {
@@ -345,6 +363,12 @@
             margin-bottom: 20px;
             width: 100%;
         }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
     </style>
     
     <!-- Firebase SDK -->
@@ -366,9 +390,9 @@
         
         <div class="content">
             <!-- Setup Notice -->
-            <div class="setup-notice">
-                <h4>🚀 Demo Version</h4>
-                <p>This is a working demo. For live community use, you'll need to set up Firebase database. Check the setup guide!</p>
+            <div class="setup-notice" id="setup-notice">
+                <h4>🔄 Loading...</h4>
+                <p>Connecting to Firebase database...</p>
             </div>
             
             <!-- Browse Menu Tab -->
@@ -377,7 +401,7 @@
                 <div id="food-list">
                     <!-- Sample food items -->
                     <div class="food-item">
-                        <img src="/api/placeholder/80/80" alt="Biryani" class="food-image">
+                        <img src="https://via.placeholder.com/80x80/667eea/ffffff?text=🍛" alt="Biryani" class="food-image">
                         <div class="food-content">
                             <h3>🍛 Homemade Biryani</h3>
                             <div class="chef">👩‍🍳 Chef Priya (Apt 204)</div>
@@ -391,7 +415,7 @@
                     </div>
                     
                     <div class="food-item">
-                        <img src="/api/placeholder/80/80" alt="Pizza" class="food-image">
+                        <img src="https://via.placeholder.com/80x80/667eea/ffffff?text=🍕" alt="Pizza" class="food-image">
                         <div class="food-content">
                             <h3>🍕 Margherita Pizza</h3>
                             <div class="chef">👨‍🍳 Chef Raj (Apt 101)</div>
@@ -501,34 +525,81 @@
     </div>
 
     <script>
-        // Firebase configuration (Demo - replace with your config)
+        // Firebase configuration - Your actual Firebase project
         const firebaseConfig = {
-           apiKey: "AIzaSyDhTjs2hsfPnRrXupZd8hldHBgxheHgt3U",
-  authDomain: "community-kitchen-3d0d2.firebaseapp.com",
-  projectId: "community-kitchen-3d0d2",
-  storageBucket: "community-kitchen-3d0d2.firebasestorage.app",
-  messagingSenderId: "497747414735",
-  appId: "1:497747414735:web:34ec49556b442f048031ba"
+            apiKey: "AIzaSyDhTjs2hsfPnRrXupZd8hldHBgxheHgt3U",
+            authDomain: "community-kitchen-3d0d2.firebaseapp.com",
+            projectId: "community-kitchen-3d0d2",
+            storageBucket: "community-kitchen-3d0d2.firebasestorage.app",
+            messagingSenderId: "497747414735",
+            appId: "1:497747414735:web:34ec49556b442f048031ba"
         };
         
-        // Initialize Firebase (in demo mode, this will use local storage)
+        // Initialize Firebase
         let db;
         let isFirebaseConnected = false;
-        
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isFirebaseConnected = true;
-            document.getElementById('connection-status').textContent = '🌐 Connected to Cloud';
-        } catch (error) {
-            console.log('Running in demo mode - using local storage');
-            document.getElementById('connection-status').textContent = '📱 Demo Mode (Local)';
-        }
         
         // Sample emojis for food items
         const foodEmojis = ['🍛', '🍕', '🍜', '🥘', '🍲', '🥗', '🍱', '🥙', '🌮', '🍝', '🍤', '🍖'];
         
         let currentOrderData = {};
+        
+        function initializeFirebase() {
+            try {
+                console.log('Initializing Firebase...');
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Test connection with a simple read
+                db.collection('test').limit(1).get()
+                    .then(() => {
+                        console.log('Firebase connected successfully!');
+                        isFirebaseConnected = true;
+                        updateConnectionStatus('connected');
+                    })
+                    .catch(error => {
+                        console.error('Firebase connection test failed:', error);
+                        handleFirebaseError(error);
+                    });
+                
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                handleFirebaseError(error);
+            }
+        }
+        
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connection-status');
+            const noticeElement = document.getElementById('setup-notice');
+            
+            if (status === 'connected') {
+                statusElement.textContent = '🌐 Connected to Cloud';
+                noticeElement.className = 'setup-notice success';
+                noticeElement.innerHTML = `
+                    <h4>✅ Firebase Connected!</h4>
+                    <p>Your Community Kitchen is now live and ready to use!</p>
+                `;
+            } else if (status === 'demo') {
+                statusElement.textContent = '📱 Demo Mode (Local)';
+                noticeElement.className = 'setup-notice warning';
+                noticeElement.innerHTML = `
+                    <h4>⚠️ Demo Mode</h4>
+                    <p>Running in demo mode. Data will be saved locally and may not persist.</p>
+                `;
+            } else {
+                statusElement.textContent = '🔄 Connecting...';
+                noticeElement.innerHTML = `
+                    <h4>🔄 Connecting...</h4>
+                    <p>Establishing connection to Firebase...</p>
+                `;
+            }
+        }
+        
+        function handleFirebaseError(error) {
+            console.error('Firebase error:', error);
+            isFirebaseConnected = false;
+            updateConnectionStatus('demo');
+        }
         
         function showTab(tabName) {
             // Hide all tab contents
@@ -595,19 +666,22 @@
         }
         
         function loadFoodItems() {
-            // In demo mode, load from localStorage
+            console.log('Loading food items...');
+            
             if (!isFirebaseConnected) {
+                console.log('Loading from localStorage...');
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                 displayFoodItems(savedItems);
                 return;
             }
             
-            // In real mode, load from Firebase
+            console.log('Loading from Firebase...');
             db.collection('foodItems')
                 .where('date', '==', new Date().toDateString())
                 .orderBy('timestamp', 'desc')
                 .get()
                 .then(snapshot => {
+                    console.log('Firebase query successful:', snapshot.size, 'items');
                     const items = [];
                     snapshot.forEach(doc => {
                         items.push({ id: doc.id, ...doc.data() });
@@ -615,7 +689,7 @@
                     displayFoodItems(items);
                 })
                 .catch(error => {
-                    console.error('Error loading food items:', error);
+                    console.error('Error loading food items from Firebase:', error);
                     // Fallback to localStorage
                     const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                     displayFoodItems(savedItems);
@@ -637,6 +711,8 @@
                 const foodItem = createFoodItemElement(item);
                 foodList.appendChild(foodItem);
             });
+            
+            console.log('Displayed', items.length, 'food items');
         }
         
         function createFoodItemElement(item) {
@@ -645,12 +721,12 @@
             
             const imageHtml = item.image ? 
                 `<img src="${item.image}" alt="${item.foodName}" class="food-image">` :
-                `<img src="/api/placeholder/80/80" alt="${item.foodName}" class="food-image">`;
+                `<img src="https://via.placeholder.com/80x80/667eea/ffffff?text=${item.emoji || '🍽️'}" alt="${item.foodName}" class="food-image">`;
             
             foodItem.innerHTML = `
                 ${imageHtml}
                 <div class="food-content">
-                    <h3>${item.emoji} ${item.foodName}</h3>
+                    <h3>${item.emoji || '🍽️'} ${item.foodName}</h3>
                     <div class="chef">👨‍🍳 Chef ${item.chefName} (${item.chefApt})</div>
                     <div class="description">${item.description}</div>
                     <div class="details">
@@ -667,6 +743,11 @@
         // Handle adding food
         document.getElementById('add-food-form').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '⏳ Adding...';
+            submitBtn.disabled = true;
             
             const formData = {
                 chefName: document.getElementById('chef-name').value,
@@ -693,30 +774,40 @@
             } else {
                 saveFoodItem(formData);
             }
-        });
-        
-        function saveFoodItem(formData) {
-            if (isFirebaseConnected) {
-                // Save to Firebase
-                db.collection('foodItems')
-                    .add(formData)
-                    .then(() => {
-                        showSuccessMessage();
-                        loadFoodItems();
-                    })
-                    .catch(error => {
-                        console.error('Error saving to Firebase:', error);
-                        saveToLocalStorage(formData);
-                    });
-            } else {
-                saveToLocalStorage(formData);
+            
+            function saveFoodItem(data) {
+                if (isFirebaseConnected) {
+                    console.log('Saving to Firebase...');
+                    db.collection('foodItems')
+                        .add(data)
+                        .then(docRef => {
+                            console.log('Food item saved to Firebase:', docRef.id);
+                            showSuccessMessage();
+                            loadFoodItems();
+                        })
+                        .catch(error => {
+                            console.error('Error saving to Firebase:', error);
+                            // Fallback to localStorage
+                            saveToLocalStorage(data);
+                        })
+                        .finally(() => {
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                        });
+                } else {
+                    console.log('Saving to localStorage...');
+                    saveToLocalStorage(data);
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
             }
-        }
+        });
         
         function saveToLocalStorage(formData) {
             const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
             savedItems.unshift(formData);
             localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
+            console.log('Food item saved to localStorage');
             showSuccessMessage();
             loadFoodItems();
         }
@@ -767,11 +858,26 @@
             closeOrderModal();
         });
         
-        // Initialize with browse tab
-        showTab('browse');
+        // Initialize everything when page loads
+        window.addEventListener('load', function() {
+            console.log('Page loaded, initializing Firebase...');
+            initializeFirebase();
+            showTab('browse');
+        });
         
-        // Load items on startup
-        loadFoodItems();
+        // Add a retry mechanism for Firebase connection
+        function retryFirebaseConnection() {
+            console.log('Retrying Firebase connection...');
+            setTimeout(initializeFirebase, 2000);
+        }
+        
+        // Retry connection if it fails initially
+        setTimeout(function() {
+            if (!isFirebaseConnected) {
+                console.log('Initial connection failed, retrying...');
+                retryFirebaseConnection();
+            }
+        }, 5000);
     </script>
 </body>
 </html>
