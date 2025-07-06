@@ -88,6 +88,7 @@
             display: flex;
             gap: 15px;
             align-items: flex-start;
+            position: relative;
         }
         
         .food-image {
@@ -151,6 +152,36 @@
             border-radius: 10px;
             cursor: pointer;
             font-size: 12px;
+        }
+        
+        .chef-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .edit-btn, .delete-btn {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .edit-btn:hover {
+            background: #e0a800;
+        }
+        
+        .delete-btn:hover {
+            background: #c82333;
         }
         
         .add-form {
@@ -364,6 +395,15 @@
             width: 100%;
         }
         
+        .refresh-btn:hover {
+            background: #138496;
+        }
+        
+        .refresh-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
         .loading {
             text-align: center;
             padding: 20px;
@@ -385,6 +425,32 @@
             transform: translateY(-50%);
             color: #666;
             font-size: 16px;
+        }
+        
+        .auth-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .auth-form h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .auth-form input {
+            margin-bottom: 10px;
+        }
+        
+        .auth-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
         }
     </style>
     
@@ -414,9 +480,9 @@
             
             <!-- Browse Menu Tab -->
             <div id="browse-content" class="tab-content">
-                <button class="refresh-btn" onclick="loadFoodItems()">🔄 Refresh Menu</button>
+                <button class="refresh-btn" id="refresh-btn" onclick="refreshMenu()">🔄 Refresh Menu</button>
                 <div id="food-list">
-                    <!-- Sample food items will be added dynamically -->
+                    <!-- Food items will be loaded here -->
                 </div>
             </div>
             
@@ -520,6 +586,49 @@
             </form>
         </div>
     </div>
+    
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            <h3>✏️ Edit Food Item</h3>
+            <form id="edit-form" class="order-form">
+                <div class="auth-form">
+                    <h4>🔐 Verify Your Identity</h4>
+                    <input type="text" id="edit-auth-name" placeholder="Your name (as entered originally)" required>
+                    <div class="phone-input">
+                        <span class="phone-prefix">+91</span>
+                        <input type="tel" id="edit-auth-phone" placeholder="Your WhatsApp number" required>
+                    </div>
+                    <button type="button" class="auth-btn" onclick="verifyChef()">Verify</button>
+                </div>
+                
+                <div id="edit-form-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="edit-food-name">Food Item</label>
+                        <input type="text" id="edit-food-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-description">Description</label>
+                        <textarea id="edit-description" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-price">Price per portion (₹)</label>
+                        <input type="number" id="edit-price" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-quantity">Available portions</label>
+                        <input type="number" id="edit-quantity" required>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         // Firebase configuration - FIXED VERSION
@@ -527,7 +636,7 @@
             apiKey: "AIzaSyDhTjs2hsfPnRrXupZd8hldHBgxheHgt3U",
             authDomain: "community-kitchen-3d0d2.firebaseapp.com",
             projectId: "community-kitchen-3d0d2",
-            storageBucket: "community-kitchen-3d0d2.appspot.com", // FIXED: Changed from .firebasestorage.app
+            storageBucket: "community-kitchen-3d0d2.appspot.com",
             messagingSenderId: "497747414735",
             appId: "1:497747414735:web:34ec49556b442f048031ba"
         };
@@ -536,7 +645,7 @@
         let db;
         let isFirebaseConnected = false;
         
-        // Sample food items data
+        // Sample food items data (removed one pizza as requested)
         const sampleFoodItems = [
             {
                 id: 'sample-1',
@@ -548,19 +657,8 @@
                 price: 150,
                 quantity: 3,
                 contact: '9876543210',
-                image: null
-            },
-            {
-                id: 'sample-2',
-                emoji: '🍕',
-                foodName: 'Margherita Pizza',
-                chefName: 'Raj',
-                chefApt: 'Apt 101',
-                description: 'Fresh homemade pizza with mozzarella, basil and tomato sauce',
-                price: 200,
-                quantity: 2,
-                contact: '9876554321',
-                image: null
+                image: null,
+                isSample: true
             }
         ];
         
@@ -568,6 +666,7 @@
         const foodEmojis = ['🍛', '🍕', '🍜', '🥘', '🍲', '🥗', '🍱', '🥙', '🌮', '🍝', '🍤', '🍖'];
         
         let currentOrderData = {};
+        let currentEditItem = null;
         
         function initializeFirebase() {
             try {
@@ -653,6 +752,20 @@
             }
         }
         
+        function refreshMenu() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const originalText = refreshBtn.textContent;
+            
+            refreshBtn.textContent = '🔄 Refreshing...';
+            refreshBtn.disabled = true;
+            
+            setTimeout(() => {
+                loadFoodItems();
+                refreshBtn.textContent = originalText;
+                refreshBtn.disabled = false;
+            }, 1000);
+        }
+        
         function openOrderModal(foodName, chefName, chefApt, chefPhone, price) {
             currentOrderData = { foodName, chefName, chefApt, chefPhone, price };
             
@@ -672,6 +785,91 @@
         function closeOrderModal() {
             document.getElementById('order-modal').style.display = 'none';
             document.getElementById('order-form').reset();
+        }
+        
+        function openEditModal(item) {
+            currentEditItem = item;
+            document.getElementById('edit-modal').style.display = 'block';
+            
+            // Reset form
+            document.getElementById('edit-form').reset();
+            document.getElementById('edit-form-fields').style.display = 'none';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            currentEditItem = null;
+        }
+        
+        function verifyChef() {
+            const enteredName = document.getElementById('edit-auth-name').value.trim().toLowerCase();
+            const enteredPhone = document.getElementById('edit-auth-phone').value.replace(/\D/g, '');
+            
+            if (!enteredName || !enteredPhone) {
+                alert('Please enter both name and phone number');
+                return;
+            }
+            
+            const itemName = currentEditItem.chefName.toLowerCase();
+            const itemPhone = currentEditItem.contact.replace(/\D/g, '');
+            
+            if (enteredName === itemName && enteredPhone === itemPhone) {
+                // Verification successful
+                document.getElementById('edit-form-fields').style.display = 'block';
+                
+                // Populate form with current values
+                document.getElementById('edit-food-name').value = currentEditItem.foodName;
+                document.getElementById('edit-description').value = currentEditItem.description;
+                document.getElementById('edit-price').value = currentEditItem.price;
+                document.getElementById('edit-quantity').value = currentEditItem.quantity;
+                
+                // Hide auth form
+                document.querySelector('.auth-form').style.display = 'none';
+            } else {
+                alert('❌ Identity verification failed. Please check your name and phone number.');
+            }
+        }
+        
+        function deleteItem(item) {
+            const enteredName = prompt('Enter your name to confirm deletion:');
+            const enteredPhone = prompt('Enter your WhatsApp number to confirm deletion:');
+            
+            if (!enteredName || !enteredPhone) {
+                return;
+            }
+            
+            const itemName = item.chefName.toLowerCase();
+            const itemPhone = item.contact.replace(/\D/g, '');
+            const inputName = enteredName.trim().toLowerCase();
+            const inputPhone = enteredPhone.replace(/\D/g, '');
+            
+            if (inputName === itemName && inputPhone === itemPhone) {
+                if (confirm('Are you sure you want to delete this food item?')) {
+                    if (isFirebaseConnected && item.id && !item.isSample) {
+                        // Delete from Firebase
+                        db.collection('foodItems').doc(item.id).delete()
+                            .then(() => {
+                                alert('✅ Food item deleted successfully!');
+                                loadFoodItems();
+                            })
+                            .catch(error => {
+                                console.error('Error deleting from Firebase:', error);
+                                alert('❌ Error deleting item. Please try again.');
+                            });
+                    } else {
+                        // Delete from localStorage
+                        const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
+                        const updatedItems = savedItems.filter(savedItem => 
+                            !(savedItem.chefName === item.chefName && savedItem.contact === item.contact && savedItem.foodName === item.foodName)
+                        );
+                        localStorage.setItem('communityFoodItems', JSON.stringify(updatedItems));
+                        alert('✅ Food item deleted successfully!');
+                        loadFoodItems();
+                    }
+                }
+            } else {
+                alert('❌ Identity verification failed. Only the chef who added this item can delete it.');
+            }
         }
         
         function previewImage(input) {
@@ -765,6 +963,14 @@
                 `<img src="${item.image}" alt="${item.foodName}" class="food-image">` :
                 `<div class="food-image" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 24px;">${item.emoji || '🍽️'}</div>`;
             
+            // Chef controls (only for non-sample items)
+            const chefControls = !item.isSample ? `
+                <div class="chef-controls">
+                    <button class="edit-btn" onclick="openEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">✏️ Edit</button>
+                    <button class="delete-btn" onclick="deleteItem(${JSON.stringify(item).replace(/"/g, '&quot;')})">🗑️ Delete</button>
+                </div>
+            ` : '';
+            
             foodItem.innerHTML = `
                 ${imageHtml}
                 <div class="food-content">
@@ -776,6 +982,7 @@
                         <span class="quantity">${item.quantity} portions left</span>
                         <button class="order-btn" onclick="openOrderModal('${item.foodName}', '${item.chefName}', '${item.chefApt}', '${item.contact}', ${item.price})">Order Now</button>
                     </div>
+                    ${chefControls}
                 </div>
             `;
             
@@ -850,6 +1057,51 @@
                     saveToLocalStorage(data);
                     submitBtn.textContent = originalText;
                     submitBtn.disabled = false;
+                }
+            }
+        });
+        
+        // Handle edit form
+        document.getElementById('edit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const updatedData = {
+                foodName: document.getElementById('edit-food-name').value,
+                description: document.getElementById('edit-description').value,
+                price: parseInt(document.getElementById('edit-price').value),
+                quantity: parseInt(document.getElementById('edit-quantity').value),
+                timestamp: new Date() // Update timestamp
+            };
+            
+            if (isFirebaseConnected && currentEditItem.id) {
+                // Update in Firebase
+                db.collection('foodItems').doc(currentEditItem.id).update(updatedData)
+                    .then(() => {
+                        alert('✅ Food item updated successfully!');
+                        closeEditModal();
+                        loadFoodItems();
+                    })
+                    .catch(error => {
+                        console.error('Error updating Firebase:', error);
+                        alert('❌ Error updating item. Please try again.');
+                    });
+            } else {
+                // Update in localStorage
+                const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
+                const itemIndex = savedItems.findIndex(item => 
+                    item.chefName === currentEditItem.chefName && 
+                    item.contact === currentEditItem.contact && 
+                    item.foodName === currentEditItem.foodName
+                );
+                
+                if (itemIndex !== -1) {
+                    savedItems[itemIndex] = { ...savedItems[itemIndex], ...updatedData };
+                    localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
+                    alert('✅ Food item updated successfully!');
+                    closeEditModal();
+                    loadFoodItems();
+                } else {
+                    alert('❌ Error updating item. Please try again.');
                 }
             }
         });
