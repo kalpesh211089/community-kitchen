@@ -287,22 +287,40 @@
         }
         
         .setup-notice {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
         }
         
+        .setup-notice.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .setup-notice.warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        
         .setup-notice h4 {
-            color: #856404;
+            color: #155724;
             margin-bottom: 10px;
         }
         
-        .setup-notice p {
+        .setup-notice.warning h4 {
             color: #856404;
+        }
+        
+        .setup-notice p {
+            color: #155724;
             font-size: 14px;
+        }
+        
+        .setup-notice.warning p {
+            color: #856404;
         }
         
         .empty-state {
@@ -345,6 +363,29 @@
             margin-bottom: 20px;
             width: 100%;
         }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .phone-input {
+            position: relative;
+        }
+        
+        .phone-input input {
+            padding-left: 50px;
+        }
+        
+        .phone-prefix {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 16px;
+        }
     </style>
     
     <!-- Firebase SDK -->
@@ -366,43 +407,16 @@
         
         <div class="content">
             <!-- Setup Notice -->
-            <div class="setup-notice">
-                <h4>🚀 Demo Version</h4>
-                <p>This is a working demo. For live community use, you'll need to set up Firebase database. Check the setup guide!</p>
+            <div class="setup-notice" id="setup-notice">
+                <h4>🔄 Loading...</h4>
+                <p>Connecting to Firebase database...</p>
             </div>
             
             <!-- Browse Menu Tab -->
             <div id="browse-content" class="tab-content">
                 <button class="refresh-btn" onclick="loadFoodItems()">🔄 Refresh Menu</button>
                 <div id="food-list">
-                    <!-- Sample food items -->
-                    <div class="food-item">
-                        <img src="/api/placeholder/80/80" alt="Biryani" class="food-image">
-                        <div class="food-content">
-                            <h3>🍛 Homemade Biryani</h3>
-                            <div class="chef">👩‍🍳 Chef Priya (Apt 204)</div>
-                            <div class="description">Aromatic basmati rice with tender chicken, fragrant spices and raita</div>
-                            <div class="details">
-                                <span class="price">₹150</span>
-                                <span class="quantity">3 portions left</span>
-                                <button class="order-btn" onclick="openOrderModal('Homemade Biryani', 'Priya', 'Apt 204', '98765-43210', 150)">Order Now</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="food-item">
-                        <img src="/api/placeholder/80/80" alt="Pizza" class="food-image">
-                        <div class="food-content">
-                            <h3>🍕 Margherita Pizza</h3>
-                            <div class="chef">👨‍🍳 Chef Raj (Apt 101)</div>
-                            <div class="description">Fresh homemade pizza with mozzarella, basil and tomato sauce</div>
-                            <div class="details">
-                                <span class="price">₹200</span>
-                                <span class="quantity">2 portions left</span>
-                                <button class="order-btn" onclick="openOrderModal('Margherita Pizza', 'Raj', 'Apt 101', '98765-54321', 200)">Order Now</button>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Sample food items will be added dynamically -->
                 </div>
             </div>
             
@@ -453,7 +467,11 @@
                     
                     <div class="form-group">
                         <label for="contact">Your WhatsApp number</label>
-                        <input type="tel" id="contact" placeholder="98765-43210" required>
+                        <div class="phone-input">
+                            <span class="phone-prefix">+91</span>
+                            <input type="tel" id="contact" placeholder="9876543210" pattern="[0-9]{10}" required>
+                        </div>
+                        <small style="color: #666; font-size: 12px;">Enter 10-digit mobile number without +91</small>
                     </div>
                     
                     <button type="submit" class="submit-btn">🍽️ Add to Today's Menu</button>
@@ -482,7 +500,10 @@
                 
                 <div class="form-group">
                     <label for="customer-phone">Your WhatsApp number</label>
-                    <input type="tel" id="customer-phone" placeholder="98765-12345" required>
+                    <div class="phone-input">
+                        <span class="phone-prefix">+91</span>
+                        <input type="tel" id="customer-phone" placeholder="9876543210" pattern="[0-9]{10}" required>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -501,35 +522,114 @@
     </div>
 
     <script>
-        // Firebase configuration (Demo - replace with your config)
+        // Firebase configuration - FIXED VERSION
         const firebaseConfig = {
-            // This is a demo config - you'll need to replace this with your actual Firebase config
-            apiKey: "demo-key",
-            authDomain: "demo.firebaseapp.com",
-            projectId: "demo-project",
-            storageBucket: "demo.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "demo-app-id"
+            apiKey: "AIzaSyDhTjs2hsfPnRrXupZd8hldHBgxheHgt3U",
+            authDomain: "community-kitchen-3d0d2.firebaseapp.com",
+            projectId: "community-kitchen-3d0d2",
+            storageBucket: "community-kitchen-3d0d2.appspot.com", // FIXED: Changed from .firebasestorage.app
+            messagingSenderId: "497747414735",
+            appId: "1:497747414735:web:34ec49556b442f048031ba"
         };
         
-        // Initialize Firebase (in demo mode, this will use local storage)
+        // Initialize Firebase
         let db;
         let isFirebaseConnected = false;
         
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isFirebaseConnected = true;
-            document.getElementById('connection-status').textContent = '🌐 Connected to Cloud';
-        } catch (error) {
-            console.log('Running in demo mode - using local storage');
-            document.getElementById('connection-status').textContent = '📱 Demo Mode (Local)';
-        }
+        // Sample food items data
+        const sampleFoodItems = [
+            {
+                id: 'sample-1',
+                emoji: '🍛',
+                foodName: 'Homemade Biryani',
+                chefName: 'Priya',
+                chefApt: 'Apt 204',
+                description: 'Aromatic basmati rice with tender chicken, fragrant spices and raita',
+                price: 150,
+                quantity: 3,
+                contact: '9876543210',
+                image: null
+            },
+            {
+                id: 'sample-2',
+                emoji: '🍕',
+                foodName: 'Margherita Pizza',
+                chefName: 'Raj',
+                chefApt: 'Apt 101',
+                description: 'Fresh homemade pizza with mozzarella, basil and tomato sauce',
+                price: 200,
+                quantity: 2,
+                contact: '9876554321',
+                image: null
+            }
+        ];
         
         // Sample emojis for food items
         const foodEmojis = ['🍛', '🍕', '🍜', '🥘', '🍲', '🥗', '🍱', '🥙', '🌮', '🍝', '🍤', '🍖'];
         
         let currentOrderData = {};
+        
+        function initializeFirebase() {
+            try {
+                console.log('Initializing Firebase with fixed config...');
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Test connection with a more specific test
+                db.enableNetwork()
+                    .then(() => {
+                        console.log('Firebase network enabled');
+                        // Try a simple operation
+                        return db.collection('test').limit(1).get();
+                    })
+                    .then(() => {
+                        console.log('Firebase connected successfully!');
+                        isFirebaseConnected = true;
+                        updateConnectionStatus('connected');
+                    })
+                    .catch(error => {
+                        console.error('Firebase connection test failed:', error);
+                        handleFirebaseError(error);
+                    });
+                
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                handleFirebaseError(error);
+            }
+        }
+        
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connection-status');
+            const noticeElement = document.getElementById('setup-notice');
+            
+            if (status === 'connected') {
+                statusElement.textContent = '🌐 Connected to Cloud';
+                noticeElement.className = 'setup-notice success';
+                noticeElement.innerHTML = `
+                    <h4>✅ Firebase Connected!</h4>
+                    <p>Your Community Kitchen is now live and ready to use!</p>
+                `;
+            } else if (status === 'demo') {
+                statusElement.textContent = '📱 Demo Mode (Local)';
+                noticeElement.className = 'setup-notice warning';
+                noticeElement.innerHTML = `
+                    <h4>⚠️ Demo Mode</h4>
+                    <p>Running in demo mode. Data will be saved locally and may not persist.</p>
+                `;
+            } else {
+                statusElement.textContent = '🔄 Connecting...';
+                noticeElement.innerHTML = `
+                    <h4>🔄 Connecting...</h4>
+                    <p>Establishing connection to Firebase...</p>
+                `;
+            }
+        }
+        
+        function handleFirebaseError(error) {
+            console.error('Firebase error:', error);
+            isFirebaseConnected = false;
+            updateConnectionStatus('demo');
+        }
         
         function showTab(tabName) {
             // Hide all tab contents
@@ -595,49 +695,59 @@
             return foodEmojis[Math.floor(Math.random() * foodEmojis.length)];
         }
         
+        function validatePhoneNumber(phone) {
+            // Remove any non-digits
+            const cleaned = phone.replace(/\D/g, '');
+            // Check if it's 10 digits
+            return cleaned.length === 10 && /^[6-9]/.test(cleaned);
+        }
+        
         function loadFoodItems() {
-            // In demo mode, load from localStorage
+            console.log('Loading food items...');
+            
             if (!isFirebaseConnected) {
+                console.log('Loading from localStorage...');
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
-                displayFoodItems(savedItems);
+                const allItems = [...sampleFoodItems, ...savedItems];
+                displayFoodItems(allItems);
                 return;
             }
             
-            // In real mode, load from Firebase
+            console.log('Loading from Firebase...');
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            
             db.collection('foodItems')
-                .where('date', '==', new Date().toDateString())
+                .where('date', '==', today)
                 .orderBy('timestamp', 'desc')
                 .get()
                 .then(snapshot => {
+                    console.log('Firebase query successful:', snapshot.size, 'items');
                     const items = [];
                     snapshot.forEach(doc => {
                         items.push({ id: doc.id, ...doc.data() });
                     });
-                    displayFoodItems(items);
+                    const allItems = [...sampleFoodItems, ...items];
+                    displayFoodItems(allItems);
                 })
                 .catch(error => {
-                    console.error('Error loading food items:', error);
+                    console.error('Error loading food items from Firebase:', error);
                     // Fallback to localStorage
                     const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
-                    displayFoodItems(savedItems);
+                    const allItems = [...sampleFoodItems, ...savedItems];
+                    displayFoodItems(allItems);
                 });
         }
         
         function displayFoodItems(items) {
             const foodList = document.getElementById('food-list');
-            const existingItems = foodList.querySelectorAll('.food-item');
-            
-            // Remove user-added items (keep sample items)
-            existingItems.forEach((item, index) => {
-                if (index >= 2) { // Keep first 2 sample items
-                    item.remove();
-                }
-            });
+            foodList.innerHTML = ''; // Clear existing items
             
             items.forEach(item => {
                 const foodItem = createFoodItemElement(item);
                 foodList.appendChild(foodItem);
             });
+            
+            console.log('Displayed', items.length, 'food items');
         }
         
         function createFoodItemElement(item) {
@@ -646,12 +756,12 @@
             
             const imageHtml = item.image ? 
                 `<img src="${item.image}" alt="${item.foodName}" class="food-image">` :
-                `<img src="/api/placeholder/80/80" alt="${item.foodName}" class="food-image">`;
+                `<div class="food-image" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 24px;">${item.emoji || '🍽️'}</div>`;
             
             foodItem.innerHTML = `
                 ${imageHtml}
                 <div class="food-content">
-                    <h3>${item.emoji} ${item.foodName}</h3>
+                    <h3>${item.emoji || '🍽️'} ${item.foodName}</h3>
                     <div class="chef">👨‍🍳 Chef ${item.chefName} (${item.chefApt})</div>
                     <div class="description">${item.description}</div>
                     <div class="details">
@@ -669,6 +779,20 @@
         document.getElementById('add-food-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '⏳ Adding...';
+            submitBtn.disabled = true;
+            
+            // Validate phone number
+            const phoneNumber = document.getElementById('contact').value;
+            if (!validatePhoneNumber(phoneNumber)) {
+                alert('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                return;
+            }
+            
             const formData = {
                 chefName: document.getElementById('chef-name').value,
                 chefApt: document.getElementById('chef-apt').value,
@@ -676,10 +800,10 @@
                 description: document.getElementById('description').value,
                 price: parseInt(document.getElementById('price').value),
                 quantity: parseInt(document.getElementById('quantity').value),
-                contact: document.getElementById('contact').value,
+                contact: phoneNumber.replace(/\D/g, ''), // Store only digits
                 emoji: getRandomEmoji(),
                 timestamp: new Date(),
-                date: new Date().toDateString()
+                date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
             };
             
             const imageInput = document.getElementById('food-image');
@@ -694,30 +818,40 @@
             } else {
                 saveFoodItem(formData);
             }
-        });
-        
-        function saveFoodItem(formData) {
-            if (isFirebaseConnected) {
-                // Save to Firebase
-                db.collection('foodItems')
-                    .add(formData)
-                    .then(() => {
-                        showSuccessMessage();
-                        loadFoodItems();
-                    })
-                    .catch(error => {
-                        console.error('Error saving to Firebase:', error);
-                        saveToLocalStorage(formData);
-                    });
-            } else {
-                saveToLocalStorage(formData);
+            
+            function saveFoodItem(data) {
+                if (isFirebaseConnected) {
+                    console.log('Saving to Firebase...');
+                    db.collection('foodItems')
+                        .add(data)
+                        .then(docRef => {
+                            console.log('Food item saved to Firebase:', docRef.id);
+                            showSuccessMessage();
+                            loadFoodItems();
+                        })
+                        .catch(error => {
+                            console.error('Error saving to Firebase:', error);
+                            // Fallback to localStorage
+                            saveToLocalStorage(data);
+                        })
+                        .finally(() => {
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                        });
+                } else {
+                    console.log('Saving to localStorage...');
+                    saveToLocalStorage(data);
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
             }
-        }
+        });
         
         function saveToLocalStorage(formData) {
             const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
             savedItems.unshift(formData);
             localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
+            console.log('Food item saved to localStorage');
             showSuccessMessage();
             loadFoodItems();
         }
@@ -745,6 +879,12 @@
             const quantity = document.getElementById('order-quantity').value;
             const specialRequests = document.getElementById('special-requests').value;
             
+            // Validate customer phone
+            if (!validatePhoneNumber(customerPhone)) {
+                alert('Please enter a valid 10-digit mobile number');
+                return;
+            }
+            
             const totalPrice = currentOrderData.price * quantity;
             
             let message = `🍽️ *Food Order from Community Kitchen*\n\n`;
@@ -754,7 +894,7 @@
             message += `*Customer Details:*\n`;
             message += `Name: ${customerName}\n`;
             message += `Apartment: ${customerApt}\n`;
-            message += `Phone: ${customerPhone}\n\n`;
+            message += `Phone: +91${customerPhone.replace(/\D/g, '')}\n\n`;
             
             if (specialRequests) {
                 message += `*Special Requests:* ${specialRequests}\n\n`;
@@ -762,17 +902,32 @@
             
             message += `*Please confirm availability and delivery details!*`;
             
-            const whatsappUrl = `https://wa.me/91${currentOrderData.chefPhone.replace(/[-\s]/g, '')}?text=${encodeURIComponent(message)}`;
+            const whatsappUrl = `https://wa.me/91${currentOrderData.chefPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
             
             closeOrderModal();
         });
         
-        // Initialize with browse tab
-        showTab('browse');
+        // Initialize everything when page loads
+        window.addEventListener('load', function() {
+            console.log('Page loaded, initializing Firebase...');
+            initializeFirebase();
+            showTab('browse');
+        });
         
-        // Load items on startup
-        loadFoodItems();
+        // Add a retry mechanism for Firebase connection
+        function retryFirebaseConnection() {
+            console.log('Retrying Firebase connection...');
+            setTimeout(initializeFirebase, 3000);
+        }
+        
+        // Retry connection if it fails initially
+        setTimeout(function() {
+            if (!isFirebaseConnected) {
+                console.log('Initial connection failed, retrying...');
+                retryFirebaseConnection();
+            }
+        }, 8000);
     </script>
 </body>
 </html>
