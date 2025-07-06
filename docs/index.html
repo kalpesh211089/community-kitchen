@@ -714,18 +714,25 @@
             }
             
             console.log('Loading from Firebase...');
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
             
+            // Simplified query - no composite index required
             db.collection('foodItems')
-                .where('date', '==', today)
                 .orderBy('timestamp', 'desc')
+                .limit(50) // Limit to recent 50 items
                 .get()
                 .then(snapshot => {
                     console.log('Firebase query successful:', snapshot.size, 'items');
                     const items = [];
+                    const today = new Date().toISOString().split('T')[0];
+                    
                     snapshot.forEach(doc => {
-                        items.push({ id: doc.id, ...doc.data() });
+                        const data = doc.data();
+                        // Filter for today's items in JavaScript instead of Firebase query
+                        if (data.date === today) {
+                            items.push({ id: doc.id, ...data });
+                        }
                     });
+                    
                     const allItems = [...sampleFoodItems, ...items];
                     displayFoodItems(allItems);
                 })
