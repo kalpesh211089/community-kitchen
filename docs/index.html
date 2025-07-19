@@ -11,6 +11,33 @@
             box-sizing: border-box;
         }
         
+        function updateStatsAfterQuantityChange() {
+            const allCards = document.querySelectorAll('.food-card');
+            let totalItems = allCards.length;
+            let availableItems = 0;
+            let soldOutItems = 0;
+            
+            allCards.forEach(card => {
+                const stockElements = card.querySelectorAll('.compact-stock, .expanded-quantity');
+                let isSoldOut = false;
+                stockElements.forEach(element => {
+                    if (element.textContent.includes('Sold Out')) {
+                        isSoldOut = true;
+                    }
+                });
+                
+                if (isSoldOut) {
+                    soldOutItems++;
+                } else {
+                    availableItems++;
+                }
+            });
+            
+            document.getElementById('stats-summary').innerHTML = `
+                📊 ${totalItems} items today • ✅ ${availableItems} available • ❌ ${soldOutItems} sold out
+            `;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
@@ -883,8 +910,23 @@
             
             console.log('Tracking view for item:', itemId);
             
+            // Update view count in the current DOM without refreshing
+            const currentCard = document.querySelector(`[data-item-id="${itemId}"]`);
+            if (currentCard) {
+                const statItems = currentCard.querySelectorAll('.stat-item span');
+                statItems.forEach(span => {
+                    if (span.textContent.includes('views')) {
+                        const currentViews = parseInt(span.textContent) || 0;
+                        span.textContent = `${currentViews + 1} views`;
+                    }
+                });
+                
+                // Update the top statistics summary
+                updateStatsAfterQuantityChange();
+            }
+            
             if (isFirebaseConnected) {
-                // Increment view count in Firebase
+                // Increment view count in Firebase (background update)
                 const itemRef = db.collection('foodItems').doc(itemId);
                 db.runTransaction(transaction => {
                     return transaction.get(itemRef).then(doc => {
@@ -896,7 +938,7 @@
                 })
                 .then(() => {
                     console.log('View count updated in Firebase');
-                    setTimeout(loadFoodItems, 500); // Refresh after a short delay
+                    // Don't refresh immediately to preserve expanded state
                 })
                 .catch(error => {
                     console.error('Error updating view count:', error);
@@ -908,7 +950,7 @@
                 if (itemIndex !== -1) {
                     savedItems[itemIndex].views = (savedItems[itemIndex].views || 0) + 1;
                     localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
-                    loadFoodItems();
+                    // Don't refresh to preserve expanded state
                 }
             }
         }
@@ -1033,6 +1075,37 @@
         function updateQuantityAfterOrder(itemId, orderedQuantity) {
             console.log('Updating quantity for item:', itemId, 'ordered:', orderedQuantity);
             
+            // Update quantity in the current DOM immediately
+            const currentCard = document.querySelector(`[data-item-id="${itemId}"]`);
+            if (currentCard) {
+                const quantityElements = currentCard.querySelectorAll('.compact-stock, .expanded-quantity');
+                quantityElements.forEach(element => {
+                    const currentText = element.textContent;
+                    if (currentText.includes('left')) {
+                        const currentQty = parseInt(currentText) || 0;
+                        const newQty = Math.max(0, currentQty - orderedQuantity);
+                        
+                        if (newQty === 0) {
+                            element.textContent = 'Sold Out';
+                            element.className = element.className.replace('low-stock', '') + ' sold-out';
+                            // Add sold-out class to the entire card
+                            currentCard.classList.add('sold-out');
+                            // Disable order buttons
+                            const orderBtns = currentCard.querySelectorAll('.quick-order-btn, .order-btn');
+                            orderBtns.forEach(btn => {
+                                btn.disabled = true;
+                                btn.textContent = 'Sold Out';
+                            });
+                        } else {
+                            element.textContent = `${newQty} left`;
+                            if (newQty <= 2) {
+                                element.className = element.className.replace('sold-out', '') + ' low-stock';
+                            }
+                        }
+                    }
+                });
+            }
+            
             if (isFirebaseConnected && itemId && !itemId.startsWith('sample-')) {
                 const itemRef = db.collection('foodItems').doc(itemId);
                 db.runTransaction(transaction => {
@@ -1050,23 +1123,31 @@
                 })
                 .then(newQuantity => {
                     console.log('Quantity updated in Firebase:', newQuantity);
-                    loadFoodItems();
+                    // Don't refresh immediately to preserve current state
                 })
                 .catch(error => {
                     console.error('Error updating quantity:', error);
                 });
             } else {
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
-                const itemIndex = savedItems.findIndex(item => 
-                    item.chefName === currentOrderData.chefName && 
-                    item.foodName === currentOrderData.foodName
-                );
+                const itemIndex = savedItems.findIndex(item => item.id === itemId);
                 
                 if (itemIndex !== -1) {
                     savedItems[itemIndex].quantity = Math.max(0, savedItems[itemIndex].quantity - orderedQuantity);
                     localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
                     console.log('Quantity updated in localStorage');
-                    loadFoodItems();
+                    // Don't refresh to preserve current state
+                } else {
+                    // Fallback: try to find by chef name and food name
+                    const fallbackIndex = savedItems.findIndex(item => 
+                        item.chefName === currentOrderData.chefName && 
+                        item.foodName === currentOrderData.foodName
+                    );
+                    if (fallbackIndex !== -1) {
+                        savedItems[fallbackIndex].quantity = Math.max(0, savedItems[fallbackIndex].quantity - orderedQuantity);
+                        localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
+                        console.log('Quantity updated in localStorage (fallback)');
+                    }
                 }
             }
         }
