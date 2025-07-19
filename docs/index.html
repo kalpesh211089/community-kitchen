@@ -91,6 +91,11 @@
             position: relative;
         }
         
+        .food-item.sold-out {
+            opacity: 0.6;
+            background: #f5f5f5;
+        }
+        
         .food-image {
             width: 80px;
             height: 80px;
@@ -144,6 +149,10 @@
             font-size: 12px;
         }
         
+        .quantity.sold-out {
+            background: #dc3545;
+        }
+        
         .order-btn {
             background: #28a745;
             color: white;
@@ -152,6 +161,11 @@
             border-radius: 10px;
             cursor: pointer;
             font-size: 12px;
+        }
+        
+        .order-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
         }
         
         .chef-controls {
@@ -215,6 +229,13 @@
         .form-group textarea {
             height: 80px;
             resize: vertical;
+        }
+        
+        .pin-input {
+            max-width: 150px;
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 3px;
         }
         
         .submit-btn {
@@ -365,24 +386,6 @@
             color: #333;
         }
         
-        .sold-out {
-            opacity: 0.6;
-            position: relative;
-        }
-        
-        .sold-out::after {
-            content: "SOLD OUT";
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #dc3545;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        
         .refresh-btn {
             background: #17a2b8;
             color: white;
@@ -432,25 +435,43 @@
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
+            text-align: center;
         }
         
         .auth-form h4 {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #333;
         }
         
         .auth-form input {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         
         .auth-btn {
             background: #667eea;
             color: white;
             border: none;
-            padding: 8px 15px;
+            padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
+        }
+        
+        .sold-out-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .low-stock {
+            background: #ffc107;
+            color: #000;
         }
     </style>
     
@@ -540,6 +561,12 @@
                         <small style="color: #666; font-size: 12px;">Enter 10-digit mobile number without +91</small>
                     </div>
                     
+                    <div class="form-group">
+                        <label for="security-pin">🔐 Set 4-Digit Security PIN</label>
+                        <input type="password" id="security-pin" placeholder="1234" maxlength="4" pattern="[0-9]{4}" class="pin-input" required>
+                        <small style="color: #666; font-size: 12px;">You'll need this PIN to edit or delete your listing</small>
+                    </div>
+                    
                     <button type="submit" class="submit-btn">🍽️ Add to Today's Menu</button>
                 </form>
             </div>
@@ -594,13 +621,10 @@
             <h3>✏️ Edit Food Item</h3>
             <form id="edit-form" class="order-form">
                 <div class="auth-form">
-                    <h4>🔐 Verify Your Identity</h4>
-                    <input type="text" id="edit-auth-name" placeholder="Your name (as entered originally)" required>
-                    <div class="phone-input">
-                        <span class="phone-prefix">+91</span>
-                        <input type="tel" id="edit-auth-phone" placeholder="Your WhatsApp number" required>
-                    </div>
-                    <button type="button" class="auth-btn" onclick="verifyChef()">Verify</button>
+                    <h4>🔐 Enter Your 4-Digit PIN</h4>
+                    <input type="password" id="edit-auth-pin" placeholder="Enter your PIN" maxlength="4" pattern="[0-9]{4}" class="pin-input" required>
+                    <br>
+                    <button type="button" class="auth-btn" onclick="verifyPin()">Verify PIN</button>
                 </div>
                 
                 <div id="edit-form-fields" style="display: none;">
@@ -645,7 +669,7 @@
         let db;
         let isFirebaseConnected = false;
         
-        // Sample food items data (removed one pizza as requested)
+        // Sample food items data
         const sampleFoodItems = [
             {
                 id: 'sample-1',
@@ -658,7 +682,8 @@
                 quantity: 3,
                 contact: '9876543210',
                 image: null,
-                isSample: true
+                isSample: true,
+                pin: '0000' // Sample PIN for demo
             }
         ];
         
@@ -766,8 +791,12 @@
             }, 1000);
         }
         
-        function openOrderModal(foodName, chefName, chefApt, chefPhone, price) {
-            currentOrderData = { foodName, chefName, chefApt, chefPhone, price };
+        function openOrderModal(foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId) {
+            currentOrderData = { foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId };
+            
+            // Set max quantity for the order
+            document.getElementById('order-quantity').max = availableQuantity;
+            document.getElementById('order-quantity').value = Math.min(1, availableQuantity);
             
             document.getElementById('order-details').innerHTML = `
                 <div class="food-item" style="margin-bottom: 20px;">
@@ -775,6 +804,7 @@
                         <h3>${foodName}</h3>
                         <div class="chef">👨‍🍳 Chef ${chefName} (${chefApt})</div>
                         <div class="price">₹${price} per portion</div>
+                        <div style="color: #666; font-size: 12px; margin-top: 5px;">Available: ${availableQuantity} portions</div>
                     </div>
                 </div>
             `;
@@ -794,6 +824,7 @@
             // Reset form
             document.getElementById('edit-form').reset();
             document.getElementById('edit-form-fields').style.display = 'none';
+            document.querySelector('.auth-form').style.display = 'block';
         }
         
         function closeEditModal() {
@@ -801,19 +832,15 @@
             currentEditItem = null;
         }
         
-        function verifyChef() {
-            const enteredName = document.getElementById('edit-auth-name').value.trim().toLowerCase();
-            const enteredPhone = document.getElementById('edit-auth-phone').value.replace(/\D/g, '');
+        function verifyPin() {
+            const enteredPin = document.getElementById('edit-auth-pin').value;
             
-            if (!enteredName || !enteredPhone) {
-                alert('Please enter both name and phone number');
+            if (!enteredPin || enteredPin.length !== 4) {
+                alert('Please enter a 4-digit PIN');
                 return;
             }
             
-            const itemName = currentEditItem.chefName.toLowerCase();
-            const itemPhone = currentEditItem.contact.replace(/\D/g, '');
-            
-            if (enteredName === itemName && enteredPhone === itemPhone) {
+            if (enteredPin === currentEditItem.pin) {
                 // Verification successful
                 document.getElementById('edit-form-fields').style.display = 'block';
                 
@@ -826,24 +853,19 @@
                 // Hide auth form
                 document.querySelector('.auth-form').style.display = 'none';
             } else {
-                alert('❌ Identity verification failed. Please check your name and phone number.');
+                alert('❌ Wrong PIN! Please try again.');
+                document.getElementById('edit-auth-pin').value = '';
             }
         }
         
         function deleteItem(item) {
-            const enteredName = prompt('Enter your name to confirm deletion:');
-            const enteredPhone = prompt('Enter your WhatsApp number to confirm deletion:');
+            const enteredPin = prompt('🔐 Enter your 4-digit PIN to delete this item:');
             
-            if (!enteredName || !enteredPhone) {
+            if (!enteredPin) {
                 return;
             }
             
-            const itemName = item.chefName.toLowerCase();
-            const itemPhone = item.contact.replace(/\D/g, '');
-            const inputName = enteredName.trim().toLowerCase();
-            const inputPhone = enteredPhone.replace(/\D/g, '');
-            
-            if (inputName === itemName && inputPhone === itemPhone) {
+            if (enteredPin === item.pin) {
                 if (confirm('Are you sure you want to delete this food item?')) {
                     if (isFirebaseConnected && item.id && !item.isSample) {
                         // Delete from Firebase
@@ -860,7 +882,7 @@
                         // Delete from localStorage
                         const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                         const updatedItems = savedItems.filter(savedItem => 
-                            !(savedItem.chefName === item.chefName && savedItem.contact === item.contact && savedItem.foodName === item.foodName)
+                            !(savedItem.chefName === item.chefName && savedItem.pin === item.pin && savedItem.foodName === item.foodName)
                         );
                         localStorage.setItem('communityFoodItems', JSON.stringify(updatedItems));
                         alert('✅ Food item deleted successfully!');
@@ -868,7 +890,50 @@
                     }
                 }
             } else {
-                alert('❌ Identity verification failed. Only the chef who added this item can delete it.');
+                alert('❌ Wrong PIN! Only the chef who added this item can delete it.');
+            }
+        }
+        
+        function updateQuantityAfterOrder(itemId, orderedQuantity) {
+            console.log('Updating quantity for item:', itemId, 'ordered:', orderedQuantity);
+            
+            if (isFirebaseConnected && itemId && !itemId.startsWith('sample-')) {
+                // Update Firebase
+                const itemRef = db.collection('foodItems').doc(itemId);
+                db.runTransaction(transaction => {
+                    return transaction.get(itemRef).then(doc => {
+                        if (!doc.exists) {
+                            throw new Error('Document does not exist!');
+                        }
+                        
+                        const currentQuantity = doc.data().quantity;
+                        const newQuantity = Math.max(0, currentQuantity - orderedQuantity);
+                        
+                        transaction.update(itemRef, { quantity: newQuantity });
+                        return newQuantity;
+                    });
+                })
+                .then(newQuantity => {
+                    console.log('Quantity updated in Firebase:', newQuantity);
+                    loadFoodItems(); // Refresh the display
+                })
+                .catch(error => {
+                    console.error('Error updating quantity in Firebase:', error);
+                });
+            } else {
+                // Update localStorage
+                const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
+                const itemIndex = savedItems.findIndex(item => 
+                    item.chefName === currentOrderData.chefName && 
+                    item.foodName === currentOrderData.foodName
+                );
+                
+                if (itemIndex !== -1) {
+                    savedItems[itemIndex].quantity = Math.max(0, savedItems[itemIndex].quantity - orderedQuantity);
+                    localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
+                    console.log('Quantity updated in localStorage');
+                    loadFoodItems(); // Refresh the display
+                }
             }
         }
         
@@ -898,6 +963,10 @@
             const cleaned = phone.replace(/\D/g, '');
             // Check if it's 10 digits
             return cleaned.length === 10 && /^[6-9]/.test(cleaned);
+        }
+        
+        function validatePin(pin) {
+            return pin && pin.length === 4 && /^\d{4}$/.test(pin);
         }
         
         function loadFoodItems() {
@@ -957,7 +1026,10 @@
         
         function createFoodItemElement(item) {
             const foodItem = document.createElement('div');
-            foodItem.className = 'food-item';
+            const isSoldOut = item.quantity <= 0;
+            const isLowStock = item.quantity > 0 && item.quantity <= 2;
+            
+            foodItem.className = `food-item ${isSoldOut ? 'sold-out' : ''}`;
             
             const imageHtml = item.image ? 
                 `<img src="${item.image}" alt="${item.foodName}" class="food-image">` :
@@ -971,16 +1043,34 @@
                 </div>
             ` : '';
             
+            // Stock status badge
+            let stockBadge = '';
+            if (isSoldOut) {
+                stockBadge = '<div class="sold-out-badge">SOLD OUT</div>';
+            } else if (isLowStock) {
+                stockBadge = '<div class="sold-out-badge low-stock">LOW STOCK</div>';
+            }
+            
+            // Quantity display
+            const quantityClass = isSoldOut ? 'quantity sold-out' : 'quantity';
+            const quantityText = isSoldOut ? 'Sold Out' : `${item.quantity} portions left`;
+            
+            // Order button
+            const orderButtonHtml = isSoldOut ? 
+                '<button class="order-btn" disabled>Sold Out</button>' :
+                `<button class="order-btn" onclick="openOrderModal('${item.foodName}', '${item.chefName}', '${item.chefApt}', '${item.contact}', ${item.price}, ${item.quantity}, '${item.id || ''}')">Order Now</button>`;
+            
             foodItem.innerHTML = `
                 ${imageHtml}
+                ${stockBadge}
                 <div class="food-content">
                     <h3>${item.emoji || '🍽️'} ${item.foodName}</h3>
                     <div class="chef">👨‍🍳 Chef ${item.chefName} (${item.chefApt})</div>
                     <div class="description">${item.description}</div>
                     <div class="details">
                         <span class="price">₹${item.price}</span>
-                        <span class="quantity">${item.quantity} portions left</span>
-                        <button class="order-btn" onclick="openOrderModal('${item.foodName}', '${item.chefName}', '${item.chefApt}', '${item.contact}', ${item.price})">Order Now</button>
+                        <span class="${quantityClass}">${quantityText}</span>
+                        ${orderButtonHtml}
                     </div>
                     ${chefControls}
                 </div>
@@ -1007,6 +1097,15 @@
                 return;
             }
             
+            // Validate PIN
+            const pin = document.getElementById('security-pin').value;
+            if (!validatePin(pin)) {
+                alert('Please enter a 4-digit PIN (numbers only)');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                return;
+            }
+            
             const formData = {
                 chefName: document.getElementById('chef-name').value,
                 chefApt: document.getElementById('chef-apt').value,
@@ -1015,6 +1114,7 @@
                 price: parseInt(document.getElementById('price').value),
                 quantity: parseInt(document.getElementById('quantity').value),
                 contact: phoneNumber.replace(/\D/g, ''), // Store only digits
+                pin: pin, // Store the PIN
                 emoji: getRandomEmoji(),
                 timestamp: new Date(),
                 date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
@@ -1090,7 +1190,7 @@
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                 const itemIndex = savedItems.findIndex(item => 
                     item.chefName === currentEditItem.chefName && 
-                    item.contact === currentEditItem.contact && 
+                    item.pin === currentEditItem.pin && 
                     item.foodName === currentEditItem.foodName
                 );
                 
@@ -1135,12 +1235,18 @@
             const customerName = document.getElementById('customer-name').value;
             const customerApt = document.getElementById('customer-apt').value;
             const customerPhone = document.getElementById('customer-phone').value;
-            const quantity = document.getElementById('order-quantity').value;
+            const quantity = parseInt(document.getElementById('order-quantity').value);
             const specialRequests = document.getElementById('special-requests').value;
             
             // Validate customer phone
             if (!validatePhoneNumber(customerPhone)) {
                 alert('Please enter a valid 10-digit mobile number');
+                return;
+            }
+            
+            // Check if enough quantity is available
+            if (quantity > currentOrderData.availableQuantity) {
+                alert(`Sorry! Only ${currentOrderData.availableQuantity} portions are available.`);
                 return;
             }
             
@@ -1164,7 +1270,13 @@
             const whatsappUrl = `https://wa.me/91${currentOrderData.chefPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
             
+            // Update quantity after successful order
+            updateQuantityAfterOrder(currentOrderData.itemId, quantity);
+            
             closeOrderModal();
+            
+            // Show confirmation
+            alert(`✅ Order sent! Your order for ${quantity} portion(s) has been sent to Chef ${currentOrderData.chefName} via WhatsApp.`);
         });
         
         // Initialize everything when page loads
