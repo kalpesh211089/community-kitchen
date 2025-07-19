@@ -79,24 +79,150 @@
             min-height: 400px;
         }
         
-        .food-item {
+        /* Compact Food Cards */
+        .food-card {
             background: #f8f9fa;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 15px;
+            border-radius: 12px;
+            margin-bottom: 12px;
             border-left: 4px solid #667eea;
-            display: flex;
-            gap: 15px;
-            align-items: flex-start;
-            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
         }
         
-        .food-item.sold-out {
+        .food-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        
+        .food-card.sold-out {
             opacity: 0.6;
             background: #f5f5f5;
+            border-left-color: #6c757d;
         }
         
-        .food-image {
+        .food-card.expanded {
+            border-radius: 15px;
+        }
+        
+        /* Compact View */
+        .card-compact {
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .compact-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        
+        .compact-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .compact-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .compact-chef {
+            font-size: 12px;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+        
+        .compact-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .compact-price {
+            font-size: 14px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .compact-stock {
+            font-size: 11px;
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+        }
+        
+        .compact-stock.sold-out {
+            background: #dc3545;
+        }
+        
+        .compact-stock.low-stock {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .expand-icon {
+            font-size: 16px;
+            color: #666;
+            transition: transform 0.3s ease;
+        }
+        
+        .food-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .quick-order-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        
+        .quick-order-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        /* Expanded View */
+        .card-expanded {
+            display: none;
+            padding: 15px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .food-card.expanded .card-expanded {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 300px; }
+        }
+        
+        .expanded-content {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .expanded-image {
             width: 80px;
             height: 80px;
             border-radius: 10px;
@@ -104,30 +230,50 @@
             flex-shrink: 0;
         }
         
-        .food-content {
+        .expanded-details {
             flex: 1;
         }
         
-        .food-item h3 {
+        .expanded-title {
+            font-size: 18px;
+            font-weight: 600;
             color: #333;
             margin-bottom: 5px;
-            font-size: 18px;
         }
         
-        .food-item .chef {
+        .expanded-chef {
             color: #667eea;
             font-weight: 500;
             font-size: 14px;
             margin-bottom: 8px;
         }
         
-        .food-item .description {
+        .expanded-description {
             color: #666;
             font-size: 14px;
+            line-height: 1.4;
             margin-bottom: 10px;
         }
         
-        .food-item .details {
+        .expanded-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #666;
+        }
+        
+        .stat-icon {
+            font-size: 14px;
+        }
+        
+        .expanded-actions {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -135,22 +281,38 @@
             gap: 10px;
         }
         
-        .price {
+        .price-quantity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .expanded-price {
             font-size: 18px;
             font-weight: bold;
             color: #28a745;
         }
         
-        .quantity {
+        .expanded-quantity {
             background: #667eea;
             color: white;
-            padding: 5px 10px;
-            border-radius: 10px;
+            padding: 4px 8px;
+            border-radius: 8px;
             font-size: 12px;
         }
         
-        .quantity.sold-out {
+        .expanded-quantity.sold-out {
             background: #dc3545;
+        }
+        
+        .expanded-quantity.low-stock {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
         }
         
         .order-btn {
@@ -158,9 +320,10 @@
             color: white;
             border: none;
             padding: 8px 15px;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 12px;
+            font-weight: 500;
         }
         
         .order-btn:disabled {
@@ -190,14 +353,18 @@
             color: white;
         }
         
-        .edit-btn:hover {
-            background: #e0a800;
+        .view-count {
+            background: #e9ecef;
+            color: #666;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
         }
         
-        .delete-btn:hover {
-            background: #c82333;
-        }
-        
+        /* Form Styles */
         .add-form {
             display: none;
         }
@@ -375,17 +542,6 @@
             color: #856404;
         }
         
-        .empty-state {
-            text-align: center;
-            color: #666;
-            padding: 40px 20px;
-        }
-        
-        .empty-state h3 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
         .refresh-btn {
             background: #17a2b8;
             color: white;
@@ -405,12 +561,6 @@
         .refresh-btn:disabled {
             background: #6c757d;
             cursor: not-allowed;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
         }
         
         .phone-input {
@@ -457,21 +607,14 @@
             font-size: 14px;
         }
         
-        .sold-out-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #dc3545;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        
-        .low-stock {
-            background: #ffc107;
-            color: #000;
+        .stats-summary {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: center;
+            color: #666;
         }
     </style>
     
@@ -502,8 +645,13 @@
             <!-- Browse Menu Tab -->
             <div id="browse-content" class="tab-content">
                 <button class="refresh-btn" id="refresh-btn" onclick="refreshMenu()">🔄 Refresh Menu</button>
+                
+                <div class="stats-summary" id="stats-summary">
+                    📊 Loading menu statistics...
+                </div>
+                
                 <div id="food-list">
-                    <!-- Food items will be loaded here -->
+                    <!-- Food cards will be loaded here -->
                 </div>
             </div>
             
@@ -655,7 +803,7 @@
     </div>
 
     <script>
-        // Firebase configuration - FIXED VERSION
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDhTjs2hsfPnRrXupZd8hldHBgxheHgt3U",
             authDomain: "community-kitchen-3d0d2.firebaseapp.com",
@@ -683,7 +831,9 @@
                 contact: '9876543210',
                 image: null,
                 isSample: true,
-                pin: '0000' // Sample PIN for demo
+                pin: '0000',
+                views: 24,
+                timestamp: new Date()
             }
         ];
         
@@ -695,15 +845,13 @@
         
         function initializeFirebase() {
             try {
-                console.log('Initializing Firebase with fixed config...');
+                console.log('Initializing Firebase...');
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 
-                // Test connection with a more specific test
                 db.enableNetwork()
                     .then(() => {
                         console.log('Firebase network enabled');
-                        // Try a simple operation
                         return db.collection('test').limit(1).get();
                     })
                     .then(() => {
@@ -756,17 +904,14 @@
         }
         
         function showTab(tabName) {
-            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.style.display = 'none';
             });
             
-            // Remove active class from all tabs
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Show selected content
             if (tabName === 'browse') {
                 document.getElementById('browse-content').style.display = 'block';
                 document.querySelectorAll('.tab')[0].classList.add('active');
@@ -791,20 +936,97 @@
             }, 1000);
         }
         
+        function toggleCard(cardElement) {
+            const isExpanded = cardElement.classList.contains('expanded');
+            
+            // Collapse all other cards
+            document.querySelectorAll('.food-card.expanded').forEach(card => {
+                if (card !== cardElement) {
+                    card.classList.remove('expanded');
+                }
+            });
+            
+            // Toggle current card
+            cardElement.classList.toggle('expanded');
+            
+            // Track view if expanding
+            if (!isExpanded && cardElement.classList.contains('expanded')) {
+                const itemId = cardElement.getAttribute('data-item-id');
+                trackView(itemId);
+            }
+        }
+        
+        function trackView(itemId) {
+            if (!itemId || itemId.startsWith('sample-')) return;
+            
+            console.log('Tracking view for item:', itemId);
+            
+            if (isFirebaseConnected) {
+                // Increment view count in Firebase
+                const itemRef = db.collection('foodItems').doc(itemId);
+                db.runTransaction(transaction => {
+                    return transaction.get(itemRef).then(doc => {
+                        if (!doc.exists) return;
+                        
+                        const currentViews = doc.data().views || 0;
+                        transaction.update(itemRef, { views: currentViews + 1 });
+                    });
+                })
+                .then(() => {
+                    console.log('View count updated in Firebase');
+                    setTimeout(loadFoodItems, 500); // Refresh after a short delay
+                })
+                .catch(error => {
+                    console.error('Error updating view count:', error);
+                });
+            } else {
+                // Update localStorage
+                const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
+                const itemIndex = savedItems.findIndex(item => item.id === itemId);
+                if (itemIndex !== -1) {
+                    savedItems[itemIndex].views = (savedItems[itemIndex].views || 0) + 1;
+                    localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
+                    loadFoodItems();
+                }
+            }
+        }
+        
+        function quickOrder(itemData, event) {
+            event.stopPropagation(); // Prevent card expansion
+            
+            if (itemData.quantity <= 0) {
+                alert('Sorry, this item is sold out!');
+                return;
+            }
+            
+            openOrderModal(
+                itemData.foodName,
+                itemData.chefName,
+                itemData.chefApt,
+                itemData.contact,
+                itemData.price,
+                itemData.quantity,
+                itemData.id
+            );
+        }
+        
         function openOrderModal(foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId) {
             currentOrderData = { foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId };
             
-            // Set max quantity for the order
             document.getElementById('order-quantity').max = availableQuantity;
             document.getElementById('order-quantity').value = Math.min(1, availableQuantity);
             
             document.getElementById('order-details').innerHTML = `
-                <div class="food-item" style="margin-bottom: 20px;">
-                    <div class="food-content">
-                        <h3>${foodName}</h3>
-                        <div class="chef">👨‍🍳 Chef ${chefName} (${chefApt})</div>
-                        <div class="price">₹${price} per portion</div>
-                        <div style="color: #666; font-size: 12px; margin-top: 5px;">Available: ${availableQuantity} portions</div>
+                <div class="food-card" style="margin-bottom: 20px;">
+                    <div class="card-compact">
+                        <div class="compact-content">
+                            <div class="compact-title">${foodName}</div>
+                            <div class="compact-chef">👨‍🍳 Chef ${chefName} (${chefApt})</div>
+                            <div class="compact-info">
+                                <div class="compact-price">₹${price} per portion</div>
+                                <div style="font-size: 12px; color: #666;">Available: ${availableQuantity} portions</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -821,7 +1043,6 @@
             currentEditItem = item;
             document.getElementById('edit-modal').style.display = 'block';
             
-            // Reset form
             document.getElementById('edit-form').reset();
             document.getElementById('edit-form-fields').style.display = 'none';
             document.querySelector('.auth-form').style.display = 'block';
@@ -841,16 +1062,13 @@
             }
             
             if (enteredPin === currentEditItem.pin) {
-                // Verification successful
                 document.getElementById('edit-form-fields').style.display = 'block';
                 
-                // Populate form with current values
                 document.getElementById('edit-food-name').value = currentEditItem.foodName;
                 document.getElementById('edit-description').value = currentEditItem.description;
                 document.getElementById('edit-price').value = currentEditItem.price;
                 document.getElementById('edit-quantity').value = currentEditItem.quantity;
                 
-                // Hide auth form
                 document.querySelector('.auth-form').style.display = 'none';
             } else {
                 alert('❌ Wrong PIN! Please try again.');
@@ -861,14 +1079,11 @@
         function deleteItem(item) {
             const enteredPin = prompt('🔐 Enter your 4-digit PIN to delete this item:');
             
-            if (!enteredPin) {
-                return;
-            }
+            if (!enteredPin) return;
             
             if (enteredPin === item.pin) {
                 if (confirm('Are you sure you want to delete this food item?')) {
                     if (isFirebaseConnected && item.id && !item.isSample) {
-                        // Delete from Firebase
                         db.collection('foodItems').doc(item.id).delete()
                             .then(() => {
                                 alert('✅ Food item deleted successfully!');
@@ -879,7 +1094,6 @@
                                 alert('❌ Error deleting item. Please try again.');
                             });
                     } else {
-                        // Delete from localStorage
                         const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                         const updatedItems = savedItems.filter(savedItem => 
                             !(savedItem.chefName === item.chefName && savedItem.pin === item.pin && savedItem.foodName === item.foodName)
@@ -898,7 +1112,6 @@
             console.log('Updating quantity for item:', itemId, 'ordered:', orderedQuantity);
             
             if (isFirebaseConnected && itemId && !itemId.startsWith('sample-')) {
-                // Update Firebase
                 const itemRef = db.collection('foodItems').doc(itemId);
                 db.runTransaction(transaction => {
                     return transaction.get(itemRef).then(doc => {
@@ -915,13 +1128,12 @@
                 })
                 .then(newQuantity => {
                     console.log('Quantity updated in Firebase:', newQuantity);
-                    loadFoodItems(); // Refresh the display
+                    loadFoodItems();
                 })
                 .catch(error => {
-                    console.error('Error updating quantity in Firebase:', error);
+                    console.error('Error updating quantity:', error);
                 });
             } else {
-                // Update localStorage
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                 const itemIndex = savedItems.findIndex(item => 
                     item.chefName === currentOrderData.chefName && 
@@ -932,7 +1144,7 @@
                     savedItems[itemIndex].quantity = Math.max(0, savedItems[itemIndex].quantity - orderedQuantity);
                     localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
                     console.log('Quantity updated in localStorage');
-                    loadFoodItems(); // Refresh the display
+                    loadFoodItems();
                 }
             }
         }
@@ -959,14 +1171,16 @@
         }
         
         function validatePhoneNumber(phone) {
-            // Remove any non-digits
             const cleaned = phone.replace(/\D/g, '');
-            // Check if it's 10 digits
             return cleaned.length === 10 && /^[6-9]/.test(cleaned);
         }
         
         function validatePin(pin) {
             return pin && pin.length === 4 && /^\d{4}$/.test(pin);
+        }
+        
+        function generateUniqueId() {
+            return Date.now().toString() + Math.random().toString(36).substr(2, 9);
         }
         
         function loadFoodItems() {
@@ -982,10 +1196,9 @@
             
             console.log('Loading from Firebase...');
             
-            // Simplified query - no composite index required
             db.collection('foodItems')
                 .orderBy('timestamp', 'desc')
-                .limit(50) // Limit to recent 50 items
+                .limit(50)
                 .get()
                 .then(snapshot => {
                     console.log('Firebase query successful:', snapshot.size, 'items');
@@ -994,7 +1207,6 @@
                     
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        // Filter for today's items in JavaScript instead of Firebase query
                         if (data.date === today) {
                             items.push({ id: doc.id, ...data });
                         }
@@ -1005,7 +1217,6 @@
                 })
                 .catch(error => {
                     console.error('Error loading food items from Firebase:', error);
-                    // Fallback to localStorage
                     const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                     const allItems = [...sampleFoodItems, ...savedItems];
                     displayFoodItems(allItems);
@@ -1014,28 +1225,60 @@
         
         function displayFoodItems(items) {
             const foodList = document.getElementById('food-list');
-            foodList.innerHTML = ''; // Clear existing items
+            foodList.innerHTML = '';
+            
+            // Update stats
+            updateMenuStats(items);
             
             items.forEach(item => {
-                const foodItem = createFoodItemElement(item);
-                foodList.appendChild(foodItem);
+                const foodCard = createFoodCard(item);
+                foodList.appendChild(foodCard);
             });
             
             console.log('Displayed', items.length, 'food items');
         }
         
-        function createFoodItemElement(item) {
-            const foodItem = document.createElement('div');
+        function updateMenuStats(items) {
+            const totalItems = items.length;
+            const availableItems = items.filter(item => item.quantity > 0).length;
+            const totalViews = items.reduce((sum, item) => sum + (item.views || 0), 0);
+            const soldOutItems = items.filter(item => item.quantity === 0).length;
+            
+            document.getElementById('stats-summary').innerHTML = `
+                📊 ${totalItems} items today • 👀 ${totalViews} total views • ✅ ${availableItems} available • ❌ ${soldOutItems} sold out
+            `;
+        }
+        
+        function createFoodCard(item) {
+            const card = document.createElement('div');
             const isSoldOut = item.quantity <= 0;
             const isLowStock = item.quantity > 0 && item.quantity <= 2;
             
-            foodItem.className = `food-item ${isSoldOut ? 'sold-out' : ''}`;
+            card.className = `food-card ${isSoldOut ? 'sold-out' : ''}`;
+            card.setAttribute('data-item-id', item.id || '');
             
             const imageHtml = item.image ? 
-                `<img src="${item.image}" alt="${item.foodName}" class="food-image">` :
-                `<div class="food-image" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 24px;">${item.emoji || '🍽️'}</div>`;
+                `<img src="${item.image}" alt="${item.foodName}" class="compact-image">` :
+                `<div class="compact-image" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 20px;">${item.emoji || '🍽️'}</div>`;
             
-            // Chef controls (only for non-sample items)
+            const expandedImageHtml = item.image ? 
+                `<img src="${item.image}" alt="${item.foodName}" class="expanded-image">` :
+                `<div class="expanded-image" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 28px;">${item.emoji || '🍽️'}</div>`;
+            
+            let stockClass = 'compact-stock';
+            let stockText = `${item.quantity} left`;
+            
+            if (isSoldOut) {
+                stockClass += ' sold-out';
+                stockText = 'Sold Out';
+            } else if (isLowStock) {
+                stockClass += ' low-stock';
+            }
+            
+            const quickOrderBtn = isSoldOut ? 
+                '<button class="quick-order-btn" disabled>Sold Out</button>' :
+                `<button class="quick-order-btn" onclick="quickOrder(${JSON.stringify(item).replace(/"/g, '&quot;')}, event)">Quick Order</button>`;
+            
             const chefControls = !item.isSample ? `
                 <div class="chef-controls">
                     <button class="edit-btn" onclick="openEditModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">✏️ Edit</button>
@@ -1043,40 +1286,79 @@
                 </div>
             ` : '';
             
-            // Stock status badge
-            let stockBadge = '';
-            if (isSoldOut) {
-                stockBadge = '<div class="sold-out-badge">SOLD OUT</div>';
-            } else if (isLowStock) {
-                stockBadge = '<div class="sold-out-badge low-stock">LOW STOCK</div>';
-            }
-            
-            // Quantity display
-            const quantityClass = isSoldOut ? 'quantity sold-out' : 'quantity';
-            const quantityText = isSoldOut ? 'Sold Out' : `${item.quantity} portions left`;
-            
-            // Order button
-            const orderButtonHtml = isSoldOut ? 
+            const orderButton = isSoldOut ? 
                 '<button class="order-btn" disabled>Sold Out</button>' :
                 `<button class="order-btn" onclick="openOrderModal('${item.foodName}', '${item.chefName}', '${item.chefApt}', '${item.contact}', ${item.price}, ${item.quantity}, '${item.id || ''}')">Order Now</button>`;
             
-            foodItem.innerHTML = `
-                ${imageHtml}
-                ${stockBadge}
-                <div class="food-content">
-                    <h3>${item.emoji || '🍽️'} ${item.foodName}</h3>
-                    <div class="chef">👨‍🍳 Chef ${item.chefName} (${item.chefApt})</div>
-                    <div class="description">${item.description}</div>
-                    <div class="details">
-                        <span class="price">₹${item.price}</span>
-                        <span class="${quantityClass}">${quantityText}</span>
-                        ${orderButtonHtml}
+            card.innerHTML = `
+                <div class="card-compact" onclick="toggleCard(this.parentElement)">
+                    ${imageHtml}
+                    <div class="compact-content">
+                        <div class="compact-title">${item.emoji || '🍽️'} ${item.foodName}</div>
+                        <div class="compact-chef">👨‍🍳 ${item.chefName} (${item.chefApt})</div>
+                        <div class="compact-info">
+                            <div class="compact-price">₹${item.price}</div>
+                            <div class="${stockClass}">${stockText}</div>
+                            ${quickOrderBtn}
+                        </div>
                     </div>
+                    <div class="expand-icon">▼</div>
+                </div>
+                
+                <div class="card-expanded">
+                    <div class="expanded-content">
+                        ${expandedImageHtml}
+                        <div class="expanded-details">
+                            <div class="expanded-title">${item.emoji || '🍽️'} ${item.foodName}</div>
+                            <div class="expanded-chef">👨‍🍳 Chef ${item.chefName} (${item.chefApt})</div>
+                            <div class="expanded-description">${item.description}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="expanded-stats">
+                        <div class="stat-item">
+                            <span class="stat-icon">👀</span>
+                            <span>${item.views || 0} views</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">⏰</span>
+                            <span>Added ${getTimeAgo(item.timestamp)}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">📍</span>
+                            <span>${item.chefApt}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="expanded-actions">
+                        <div class="price-quantity">
+                            <div class="expanded-price">₹${item.price}</div>
+                            <div class="expanded-quantity ${isSoldOut ? 'sold-out' : isLowStock ? 'low-stock' : ''}">${stockText}</div>
+                        </div>
+                        <div class="action-buttons">
+                            ${orderButton}
+                        </div>
+                    </div>
+                    
                     ${chefControls}
                 </div>
             `;
             
-            return foodItem;
+            return card;
+        }
+        
+        function getTimeAgo(timestamp) {
+            if (!timestamp) return 'recently';
+            
+            const now = new Date();
+            const then = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const diffMs = now - then;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return 'today';
         }
         
         // Handle adding food
@@ -1088,7 +1370,6 @@
             submitBtn.textContent = '⏳ Adding...';
             submitBtn.disabled = true;
             
-            // Validate phone number
             const phoneNumber = document.getElementById('contact').value;
             if (!validatePhoneNumber(phoneNumber)) {
                 alert('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
@@ -1097,7 +1378,6 @@
                 return;
             }
             
-            // Validate PIN
             const pin = document.getElementById('security-pin').value;
             if (!validatePin(pin)) {
                 alert('Please enter a 4-digit PIN (numbers only)');
@@ -1107,17 +1387,19 @@
             }
             
             const formData = {
+                id: generateUniqueId(),
                 chefName: document.getElementById('chef-name').value,
                 chefApt: document.getElementById('chef-apt').value,
                 foodName: document.getElementById('food-name').value,
                 description: document.getElementById('description').value,
                 price: parseInt(document.getElementById('price').value),
                 quantity: parseInt(document.getElementById('quantity').value),
-                contact: phoneNumber.replace(/\D/g, ''), // Store only digits
-                pin: pin, // Store the PIN
+                contact: phoneNumber.replace(/\D/g, ''),
+                pin: pin,
                 emoji: getRandomEmoji(),
+                views: 0,
                 timestamp: new Date(),
-                date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+                date: new Date().toISOString().split('T')[0]
             };
             
             const imageInput = document.getElementById('food-image');
@@ -1145,7 +1427,6 @@
                         })
                         .catch(error => {
                             console.error('Error saving to Firebase:', error);
-                            // Fallback to localStorage
                             saveToLocalStorage(data);
                         })
                         .finally(() => {
@@ -1170,11 +1451,10 @@
                 description: document.getElementById('edit-description').value,
                 price: parseInt(document.getElementById('edit-price').value),
                 quantity: parseInt(document.getElementById('edit-quantity').value),
-                timestamp: new Date() // Update timestamp
+                timestamp: new Date()
             };
             
             if (isFirebaseConnected && currentEditItem.id) {
-                // Update in Firebase
                 db.collection('foodItems').doc(currentEditItem.id).update(updatedData)
                     .then(() => {
                         alert('✅ Food item updated successfully!');
@@ -1186,7 +1466,6 @@
                         alert('❌ Error updating item. Please try again.');
                     });
             } else {
-                // Update in localStorage
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                 const itemIndex = savedItems.findIndex(item => 
                     item.chefName === currentEditItem.chefName && 
@@ -1216,15 +1495,11 @@
         }
         
         function showSuccessMessage() {
-            // Clear form
             document.getElementById('add-food-form').reset();
             document.getElementById('image-preview').style.display = 'none';
             document.querySelector('.image-upload-btn').innerHTML = '📸 Tap to add a photo of your food<br><small>(Makes your listing more attractive!)</small>';
             
-            // Switch to browse tab
             showTab('browse');
-            
-            // Show success message
             alert('🎉 Your food item has been added to today\'s menu!');
         }
         
@@ -1238,13 +1513,11 @@
             const quantity = parseInt(document.getElementById('order-quantity').value);
             const specialRequests = document.getElementById('special-requests').value;
             
-            // Validate customer phone
             if (!validatePhoneNumber(customerPhone)) {
                 alert('Please enter a valid 10-digit mobile number');
                 return;
             }
             
-            // Check if enough quantity is available
             if (quantity > currentOrderData.availableQuantity) {
                 alert(`Sorry! Only ${currentOrderData.availableQuantity} portions are available.`);
                 return;
@@ -1270,12 +1543,8 @@
             const whatsappUrl = `https://wa.me/91${currentOrderData.chefPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
             
-            // Update quantity after successful order
             updateQuantityAfterOrder(currentOrderData.itemId, quantity);
-            
             closeOrderModal();
-            
-            // Show confirmation
             alert(`✅ Order sent! Your order for ${quantity} portion(s) has been sent to Chef ${currentOrderData.chefName} via WhatsApp.`);
         });
         
@@ -1286,13 +1555,11 @@
             showTab('browse');
         });
         
-        // Add a retry mechanism for Firebase connection
         function retryFirebaseConnection() {
             console.log('Retrying Firebase connection...');
             setTimeout(initializeFirebase, 3000);
         }
         
-        // Retry connection if it fails initially
         setTimeout(function() {
             if (!isFirebaseConnected) {
                 console.log('Initial connection failed, retrying...');
