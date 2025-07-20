@@ -106,6 +106,7 @@
             overflow: hidden;
             transition: all 0.3s ease;
             cursor: pointer;
+            position: relative;
         }
         
         .food-card:hover {
@@ -125,7 +126,7 @@
         
         /* Compact View */
         .card-compact {
-            padding: 12px 15px;
+            padding: 12px 50px 12px 15px;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -191,9 +192,26 @@
         }
         
         .expand-icon {
+            position: absolute;
+            top: 15px;
+            right: 15px;
             font-size: 16px;
             color: #666;
             transition: transform 0.3s ease;
+            cursor: pointer;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        .expand-icon:hover {
+            background: white;
+            color: #667eea;
         }
         
         .food-card.expanded .expand-icon {
@@ -209,6 +227,8 @@
             font-size: 10px;
             cursor: pointer;
             margin-left: 8px;
+            position: relative;
+            z-index: 5;
         }
         
         .quick-order-btn:disabled {
@@ -231,6 +251,12 @@
         
         .food-card.expanded .card-compact {
             display: none;
+        }
+        
+        .food-card.expanded .expand-icon {
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.95);
         }
         
         @keyframes slideDown {
@@ -601,6 +627,69 @@
             text-align: center;
             color: #666;
         }
+        
+        .food-type-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        
+        .food-type-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .food-type-option:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .food-type-option input[type="radio"] {
+            margin: 0;
+            width: auto;
+        }
+        
+        .food-type-option input[type="radio"]:checked + .veg-indicator {
+            filter: brightness(1.2);
+        }
+        
+        .food-type-option input[type="radio"]:checked + .non-veg-indicator {
+            filter: brightness(1.2);
+        }
+        
+        .food-type-option:has(input:checked) {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .veg-indicator, .non-veg-indicator {
+            font-size: 16px;
+        }
+        
+        .food-type-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 5px;
+            font-size: 14px;
+            position: relative;
+            top: 1px;
+        }
+        
+        .compact-title .food-type-indicator {
+            font-size: 12px;
+        }
+        
+        .expanded-title .food-type-indicator {
+            font-size: 16px;
+        }
     </style>
     
     <!-- Firebase SDK -->
@@ -656,6 +745,22 @@
                     <div class="form-group">
                         <label for="chef-apt">Your Apartment/Flat</label>
                         <input type="text" id="chef-apt" placeholder="e.g., Apt 204 or B-wing 501" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="food-type">Food Type</label>
+                        <div class="food-type-options">
+                            <label class="food-type-option">
+                                <input type="radio" name="food-type" value="veg" checked>
+                                <span class="veg-indicator">🟢</span>
+                                <span>Vegetarian</span>
+                            </label>
+                            <label class="food-type-option">
+                                <input type="radio" name="food-type" value="non-veg">
+                                <span class="non-veg-indicator">🔴</span>
+                                <span>Non-Vegetarian</span>
+                            </label>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -801,6 +906,7 @@
                 id: 'sample-1',
                 emoji: '🍛',
                 foodName: 'Homemade Biryani',
+                foodType: 'non-veg',
                 chefName: 'Priya',
                 chefApt: 'Apt 204',
                 description: 'Aromatic basmati rice with tender chicken, fragrant spices and raita',
@@ -885,21 +991,27 @@
             }, 1000);
         }
         
-        function toggleCard(cardElement) {
+        function toggleCard(cardElement, event) {
+            // Prevent event bubbling from child elements
+            if (event) {
+                event.stopPropagation();
+            }
+            
             const isExpanded = cardElement.classList.contains('expanded');
             
-            // Collapse all other cards
-            document.querySelectorAll('.food-card.expanded').forEach(card => {
-                if (card !== cardElement) {
+            if (isExpanded) {
+                // If card is already expanded, collapse it
+                cardElement.classList.remove('expanded');
+            } else {
+                // Collapse all other cards first
+                document.querySelectorAll('.food-card.expanded').forEach(card => {
                     card.classList.remove('expanded');
-                }
-            });
-            
-            // Toggle current card
-            cardElement.classList.toggle('expanded');
-            
-            // Track view if expanding (only on expand, not collapse)
-            if (!isExpanded && cardElement.classList.contains('expanded')) {
+                });
+                
+                // Expand current card
+                cardElement.classList.add('expanded');
+                
+                // Track view only when expanding (not collapsing)
                 const itemId = cardElement.getAttribute('data-item-id');
                 trackView(itemId);
             }
@@ -970,12 +1082,13 @@
                 itemData.contact,
                 itemData.price,
                 itemData.quantity,
-                itemData.id
+                itemData.id,
+                itemData.foodType
             );
         }
         
-        function openOrderModal(foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId) {
-            currentOrderData = { foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId };
+        function openOrderModal(foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId, foodType) {
+            currentOrderData = { foodName, chefName, chefApt, chefPhone, price, availableQuantity, itemId, foodType };
             
             document.getElementById('order-quantity').max = availableQuantity;
             document.getElementById('order-quantity').value = Math.min(1, availableQuantity);
@@ -984,7 +1097,7 @@
                 <div class="food-card" style="margin-bottom: 20px;">
                     <div class="card-compact">
                         <div class="compact-content">
-                            <div class="compact-title">${foodName}</div>
+                            <div class="compact-title">${getFoodTypeIndicator(foodType || 'veg')}${foodName}</div>
                             <div class="compact-chef">👨‍🍳 Chef ${chefName} (${chefApt})</div>
                             <div class="compact-info">
                                 <div class="compact-price">₹${price} per portion</div>
@@ -1173,6 +1286,14 @@
             return foodEmojis[Math.floor(Math.random() * foodEmojis.length)];
         }
         
+        function getFoodTypeIndicator(foodType) {
+            if (foodType === 'non-veg') {
+                return '<span class="food-type-indicator">🔴</span>';
+            } else {
+                return '<span class="food-type-indicator">🟢</span>';
+            }
+        }
+        
         function validatePhoneNumber(phone) {
             const cleaned = phone.replace(/\D/g, '');
             return cleaned.length === 10 && /^[6-9]/.test(cleaned);
@@ -1291,13 +1412,13 @@
             
             const orderButton = isSoldOut ? 
                 '<button class="order-btn" disabled>Sold Out</button>' :
-                `<button class="order-btn" onclick="openOrderModal('${item.foodName}', '${item.chefName}', '${item.chefApt}', '${item.contact}', ${item.price}, ${item.quantity}, '${item.id || ''}')">Order Now</button>`;
+                `<button class="order-btn" onclick="openOrderModal('${item.foodName}', '${item.chefName}', '${item.chefApt}', '${item.contact}', ${item.price}, ${item.quantity}, '${item.id || ''}', '${item.foodType || 'veg'}')">Order Now</button>`;
             
             card.innerHTML = `
-                <div class="card-compact" onclick="toggleCard(this.parentElement)">
+                <div class="card-compact" onclick="toggleCard(this.parentElement, event)">
                     ${imageHtml}
                     <div class="compact-content">
-                        <div class="compact-title">${item.emoji || '🍽️'} ${item.foodName}</div>
+                        <div class="compact-title">${getFoodTypeIndicator(item.foodType || 'veg')}${item.emoji || '🍽️'} ${item.foodName}</div>
                         <div class="compact-chef">👨‍🍳 ${item.chefName} (${item.chefApt})</div>
                         <div class="compact-info">
                             <div class="compact-price">₹${item.price}</div>
@@ -1305,14 +1426,14 @@
                             ${quickOrderBtn}
                         </div>
                     </div>
-                    <div class="expand-icon">▼</div>
                 </div>
+                <div class="expand-icon" onclick="toggleCard(this.parentElement, event)">▼</div>
                 
                 <div class="card-expanded">
                     <div class="expanded-content">
                         ${expandedImageHtml}
                         <div class="expanded-details">
-                            <div class="expanded-title">${item.emoji || '🍽️'} ${item.foodName}</div>
+                            <div class="expanded-title">${getFoodTypeIndicator(item.foodType || 'veg')}${item.emoji || '🍽️'} ${item.foodName}</div>
                             <div class="expanded-chef">👨‍🍳 Chef ${item.chefName} (${item.chefApt})</div>
                             <div class="expanded-description">${item.description}</div>
                         </div>
@@ -1394,6 +1515,7 @@
                 chefName: document.getElementById('chef-name').value,
                 chefApt: document.getElementById('chef-apt').value,
                 foodName: document.getElementById('food-name').value,
+                foodType: document.querySelector('input[name="food-type"]:checked').value,
                 description: document.getElementById('description').value,
                 price: parseInt(document.getElementById('price').value),
                 quantity: parseInt(document.getElementById('quantity').value),
@@ -1499,6 +1621,8 @@
         
         function showSuccessMessage() {
             document.getElementById('add-food-form').reset();
+            // Reset food type to vegetarian (default)
+            document.querySelector('input[name="food-type"][value="veg"]').checked = true;
             document.getElementById('image-preview').style.display = 'none';
             document.querySelector('.image-upload-btn').innerHTML = '📸 Tap to add a photo of your food<br><small>(Makes your listing more attractive!)</small>';
             
