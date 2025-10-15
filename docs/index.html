@@ -11,33 +11,6 @@
             box-sizing: border-box;
         }
         
-        function updateStatsAfterQuantityChange() {
-            const allCards = document.querySelectorAll('.food-card');
-            let totalItems = allCards.length;
-            let availableItems = 0;
-            let soldOutItems = 0;
-            
-            allCards.forEach(card => {
-                const stockElements = card.querySelectorAll('.compact-stock, .expanded-quantity');
-                let isSoldOut = false;
-                stockElements.forEach(element => {
-                    if (element.textContent.includes('Sold Out')) {
-                        isSoldOut = true;
-                    }
-                });
-                
-                if (isSoldOut) {
-                    soldOutItems++;
-                } else {
-                    availableItems++;
-                }
-            });
-            
-            document.getElementById('stats-summary').innerHTML = `
-                📊 ${totalItems} items today • ✅ ${availableItems} available • ❌ ${soldOutItems} sold out
-            `;
-        }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
@@ -453,6 +426,20 @@
             letter-spacing: 3px;
         }
         
+        #chef-access-code {
+            border: 2px solid #667eea;
+            background: #f8f9ff;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        
+        #chef-access-code:focus {
+            outline: none;
+            border-color: #764ba2;
+            background: white;
+        }
+        
         .submit-btn {
             width: 100%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -724,6 +711,11 @@
             
             <!-- Add Food Tab -->
             <div id="add-content" class="tab-content add-form">
+                <div class="chef-info-box">
+                    <h4>👨‍🍳 Become a Community Chef</h4>
+                    <p>To add food items, you need a Chef Access Code. Contact the admin to get your code and start sharing delicious meals with your neighbors!</p>
+                </div>
+                
                 <form id="add-food-form">
                     <div class="form-group">
                         <label for="food-image">Food Photo (Optional)</label>
@@ -740,6 +732,12 @@
                     <div class="form-group">
                         <label for="chef-name">Your Name</label>
                         <input type="text" id="chef-name" placeholder="e.g., Priya" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="chef-access-code">🔑 Chef Access Code</label>
+                        <input type="password" id="chef-access-code" placeholder="Enter access code" required>
+                        <small style="color: #666; font-size: 12px;">Ask the admin for the access code to become a chef</small>
                     </div>
                     
                     <div class="form-group">
@@ -900,12 +898,15 @@
         let db;
         let isFirebaseConnected = false;
         
+        // Chef Authorization - Change this code to control who can add food
+        const CHEF_ACCESS_CODE = "KITCHEN2025"; // Change this to your secret code
+        
         // Sample food items data
         const sampleFoodItems = [
             {
                 id: 'sample-1',
                 emoji: '🍛',
-                foodName: 'Homemade Biryani',
+                foodName: 'Sample Entry Biryani',
                 foodType: 'non-veg',
                 chefName: 'Priya',
                 chefApt: 'Apt 204',
@@ -1494,6 +1495,15 @@
             submitBtn.textContent = '⏳ Adding...';
             submitBtn.disabled = true;
             
+            // Validate Chef Access Code
+            const accessCode = document.getElementById('chef-access-code').value;
+            if (accessCode !== CHEF_ACCESS_CODE) {
+                alert('❌ Invalid Chef Access Code!\n\nPlease contact the admin to get the correct access code.');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                return;
+            }
+            
             const phoneNumber = document.getElementById('contact').value;
             if (!validatePhoneNumber(phoneNumber)) {
                 alert('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
@@ -1625,6 +1635,9 @@
             document.querySelector('input[name="food-type"][value="veg"]').checked = true;
             document.getElementById('image-preview').style.display = 'none';
             document.querySelector('.image-upload-btn').innerHTML = '📸 Tap to add a photo of your food<br><small>(Makes your listing more attractive!)</small>';
+            
+            // Clear the access code for security
+            document.getElementById('chef-access-code').value = '';
             
             showTab('browse');
             alert('🎉 Your food item has been added to today\'s menu!');
