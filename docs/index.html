@@ -777,10 +777,13 @@
                             <input type="file" id="food-image" accept="image/*" onchange="previewImage(this)">
                             <label for="food-image" class="image-upload-btn">
                                 📸 Tap to add a photo of your food<br>
-                                <small>(Makes your listing more attractive!)</small>
+                                <small>(Max 500KB • Will be compressed automatically)</small>
                             </label>
                             <img id="image-preview" class="image-preview" alt="Food preview">
                         </div>
+                        <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">
+                            💡 Tip: Smaller photos load faster for everyone!
+                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -954,6 +957,7 @@
         // Initialize Firebase
         let db;
         let isFirebaseConnected = false;
+        let firestoreListener = null; // For real-time updates
         
         // Chef Authorization - Change this code to control who can add food
         const CHEF_ACCESS_CODE = "KITCHEN2025"; // Change this to your secret code
@@ -1331,15 +1335,56 @@
             const uploadBtn = document.querySelector('.image-upload-btn');
             
             if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Check file size (limit to 500KB for better performance)
+                if (file.size > 500000) {
+                    alert('⚠️ Image is too large! Please choose an image smaller than 500KB.\n\nTip: Use a photo compression tool or take a lower resolution photo.');
+                    input.value = '';
+                    return;
+                }
+                
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    uploadBtn.innerHTML = '📸 Photo selected! Tap to change';
+                    const img = new Image();
+                    img.onload = function() {
+                        // Compress image if needed
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Resize if image is too large
+                        const maxDimension = 800;
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = (height / width) * maxDimension;
+                                width = maxDimension;
+                            } else {
+                                width = (width / height) * maxDimension;
+                                height = maxDimension;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to compressed base64 (JPEG with 0.7 quality)
+                        const compressedImage = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        preview.src = compressedImage;
+                        preview.style.display = 'block';
+                        uploadBtn.innerHTML = '📸 Photo selected! Tap to change';
+                        
+                        // Store compressed image for later use
+                        preview.dataset.compressed = compressedImage;
+                    };
+                    img.src = e.target.result;
                 };
                 
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             }
         }
         
@@ -1388,36 +1433,93 @@
                 return;
             }
             
-            console.log('Loading from Firebase...');
+            console.log('Loading from Firebase with real-time updates...');
             const today = new Date().toISOString().split('T')[0];
             
-            // Optimized query - filter by date in Firebase
+            // Remove old listener if exists
+            if (firestoreListener) {
+                firestoreListener();
+            }
+            
+            // Set up real-time listener for automatic updates
+            const setupRealtimeListener = (query) => {
+                firestoreListener = query.onSnapshot(
+                    snapshot => {
+                        console.log('Firebase real-time update:', snapshot.size, 'items');
+                        const items = [];
+                        
+                        snapshot.forEach(doc => {
+                            items.push({ id: doc.id, ...doc.data() });
+                        });
+                        
+                        const allItems = [...sampleFoodItems, ...items];
+                        displayFoodItems(allItems);
+                        
+                        if (loadingIndicator) {
+                            loadingIndicator.classList.remove('active');
+                        }
+                    },
+                    error => {
+                        console.error('Real-time listener error:', error);
+                        if (loadingIndicator) {
+                            loadingIndicator.classList.remove('active');
+                        }
+                    }
+                );
+            };
+            
+            // Try optimized query first, fallback to simple query if index not ready
             db.collection('foodItems')
                 .where('date', '==', today)
                 .orderBy('timestamp', 'desc')
                 .limit(50)
                 .get()
                 .then(snapshot => {
-                    console.log('Firebase query successful:', snapshot.size, 'items');
-                    const items = [];
-                    
-                    snapshot.forEach(doc => {
-                        items.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    const allItems = [...sampleFoodItems, ...items];
-                    displayFoodItems(allItems);
+                    console.log('Firebase optimized query successful, setting up real-time listener');
+                    // Set up real-time listener with optimized query
+                    setupRealtimeListener(
+                        db.collection('foodItems')
+                            .where('date', '==', today)
+                            .orderBy('timestamp', 'desc')
+                            .limit(50)
+                    );
                 })
                 .catch(error => {
-                    console.error('Error loading food items from Firebase:', error);
-                    const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
-                    const allItems = [...sampleFoodItems, ...savedItems];
-                    displayFoodItems(allItems);
-                })
-                .finally(() => {
-                    if (loadingIndicator) {
-                        loadingIndicator.classList.remove('active');
-                    }
+                    console.error('Error with optimized query, using fallback:', error);
+                    // Fallback: Use simple query with client-side filtering
+                    firestoreListener = db.collection('foodItems')
+                        .orderBy('timestamp', 'desc')
+                        .limit(50)
+                        .onSnapshot(
+                            snapshot => {
+                                console.log('Firebase fallback real-time update:', snapshot.size, 'items');
+                                const items = [];
+                                
+                                snapshot.forEach(doc => {
+                                    const data = doc.data();
+                                    if (data.date === today) {
+                                        items.push({ id: doc.id, ...data });
+                                    }
+                                });
+                                
+                                const allItems = [...sampleFoodItems, ...items];
+                                displayFoodItems(allItems);
+                                
+                                if (loadingIndicator) {
+                                    loadingIndicator.classList.remove('active');
+                                }
+                            },
+                            error => {
+                                console.error('Fallback listener error:', error);
+                                const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
+                                const allItems = [...sampleFoodItems, ...savedItems];
+                                displayFoodItems(allItems);
+                                
+                                if (loadingIndicator) {
+                                    loadingIndicator.classList.remove('active');
+                                }
+                            }
+                        );
                 });
         }
         
@@ -1673,12 +1775,42 @@
             };
             
             const imageInput = document.getElementById('food-image');
+            const preview = document.getElementById('image-preview');
             
-            if (imageInput.files && imageInput.files[0]) {
+            // Use compressed image if available
+            if (preview.dataset.compressed) {
+                formData.image = preview.dataset.compressed;
+                saveFoodItem(formData);
+            } else if (imageInput.files && imageInput.files[0]) {
+                // Fallback: compress on the fly if not already compressed
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    formData.image = e.target.result;
-                    saveFoodItem(formData);
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        const maxDimension = 800;
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = (height / width) * maxDimension;
+                                width = maxDimension;
+                            } else {
+                                width = (width / height) * maxDimension;
+                                height = maxDimension;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        formData.image = canvas.toDataURL('image/jpeg', 0.7);
+                        saveFoodItem(formData);
+                    };
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(imageInput.files[0]);
             } else {
@@ -1781,8 +1913,10 @@
             document.getElementById('add-food-form').reset();
             // Reset food type to vegetarian (default)
             document.querySelector('input[name="food-type"][value="veg"]').checked = true;
-            document.getElementById('image-preview').style.display = 'none';
-            document.querySelector('.image-upload-btn').innerHTML = '📸 Tap to add a photo of your food<br><small>(Makes your listing more attractive!)</small>';
+            const preview = document.getElementById('image-preview');
+            preview.style.display = 'none';
+            preview.dataset.compressed = ''; // Clear compressed data
+            document.querySelector('.image-upload-btn').innerHTML = '📸 Tap to add a photo of your food<br><small>(Max 500KB • Will be compressed automatically)</small>';
             
             // Clear the access code for security
             document.getElementById('chef-access-code').value = '';
