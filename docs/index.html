@@ -677,6 +677,55 @@
         .expanded-title .food-type-indicator {
             font-size: 16px;
         }
+        
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-size: 14px;
+        }
+        
+        .loading-indicator.active {
+            display: block;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
     </style>
     
     <!-- Firebase SDK -->
@@ -702,6 +751,11 @@
                 
                 <div class="stats-summary" id="stats-summary">
                     📊 Loading menu statistics...
+                </div>
+                
+                <div class="loading-indicator" id="loading-indicator">
+                    <div class="loading-spinner"></div>
+                    Loading delicious food items...
                 </div>
                 
                 <div id="food-list">
@@ -882,6 +936,9 @@
             </form>
         </div>
     </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
     <script>
         // Firebase configuration
@@ -906,7 +963,7 @@
             {
                 id: 'sample-1',
                 emoji: '🍛',
-                foodName: 'Sample Entry Biryani',
+                foodName: 'Homemade Biryani',
                 foodType: 'non-veg',
                 chefName: 'Priya',
                 chefApt: 'Apt 204',
@@ -1218,6 +1275,9 @@
                         }
                     }
                 });
+                
+                // Update the top statistics summary
+                updateStatsAfterQuantityChange();
             }
             
             if (isFirebaseConnected && itemId && !itemId.startsWith('sample-')) {
@@ -1311,30 +1371,38 @@
         function loadFoodItems() {
             console.log('Loading food items...');
             
+            // Show loading indicator
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.classList.add('active');
+            }
+            
             if (!isFirebaseConnected) {
                 console.log('Loading from localStorage...');
                 const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                 const allItems = [...sampleFoodItems, ...savedItems];
                 displayFoodItems(allItems);
+                if (loadingIndicator) {
+                    loadingIndicator.classList.remove('active');
+                }
                 return;
             }
             
             console.log('Loading from Firebase...');
+            const today = new Date().toISOString().split('T')[0];
             
+            // Optimized query - filter by date in Firebase
             db.collection('foodItems')
+                .where('date', '==', today)
                 .orderBy('timestamp', 'desc')
                 .limit(50)
                 .get()
                 .then(snapshot => {
                     console.log('Firebase query successful:', snapshot.size, 'items');
                     const items = [];
-                    const today = new Date().toISOString().split('T')[0];
                     
                     snapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data.date === today) {
-                            items.push({ id: doc.id, ...data });
-                        }
+                        items.push({ id: doc.id, ...doc.data() });
                     });
                     
                     const allItems = [...sampleFoodItems, ...items];
@@ -1345,6 +1413,11 @@
                     const savedItems = JSON.parse(localStorage.getItem('communityFoodItems') || '[]');
                     const allItems = [...sampleFoodItems, ...savedItems];
                     displayFoodItems(allItems);
+                })
+                .finally(() => {
+                    if (loadingIndicator) {
+                        loadingIndicator.classList.remove('active');
+                    }
                 });
         }
         
@@ -1372,6 +1445,68 @@
             document.getElementById('stats-summary').innerHTML = `
                 📊 ${totalItems} items today • ✅ ${availableItems} available • ❌ ${soldOutItems} sold out
             `;
+        }
+        
+        function updateStatsAfterQuantityChange() {
+            const allCards = document.querySelectorAll('.food-card');
+            let totalItems = allCards.length;
+            let availableItems = 0;
+            let soldOutItems = 0;
+            
+            allCards.forEach(card => {
+                const stockElements = card.querySelectorAll('.compact-stock, .expanded-quantity');
+                let isSoldOut = false;
+                stockElements.forEach(element => {
+                    if (element.textContent.includes('Sold Out')) {
+                        isSoldOut = true;
+                    }
+                });
+                
+                if (isSoldOut) {
+                    soldOutItems++;
+                } else {
+                    availableItems++;
+                }
+            });
+            
+            document.getElementById('stats-summary').innerHTML = `
+                📊 ${totalItems} items today • ✅ ${availableItems} available • ❌ ${soldOutItems} sold out
+            `;
+        }
+        
+        // Optimistic UI update functions
+        function addItemToDisplay(item) {
+            const foodList = document.getElementById('food-list');
+            const foodCard = createFoodCard(item);
+            // Add to the top of the list
+            foodList.insertBefore(foodCard, foodList.firstChild);
+            updateStatsAfterQuantityChange();
+        }
+        
+        function replaceItemInDisplay(tempId, realId) {
+            const tempCard = document.querySelector(`[data-item-id="${tempId}"]`);
+            if (tempCard) {
+                tempCard.setAttribute('data-item-id', realId);
+            }
+        }
+        
+        function removeItemFromDisplay(itemId) {
+            const card = document.querySelector(`[data-item-id="${itemId}"]`);
+            if (card) {
+                card.remove();
+                updateStatsAfterQuantityChange();
+            }
+        }
+        
+        // Toast notification
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
         }
         
         function createFoodCard(item) {
@@ -1553,15 +1688,28 @@
             function saveFoodItem(data) {
                 if (isFirebaseConnected) {
                     console.log('Saving to Firebase...');
+                    
+                    // Optimistic UI Update - Show item immediately
+                    const tempId = 'temp-' + Date.now();
+                    const optimisticItem = { ...data, id: tempId };
+                    addItemToDisplay(optimisticItem);
+                    
+                    // Switch to browse tab immediately
+                    showSuccessMessage();
+                    
+                    // Save to Firebase in background
                     db.collection('foodItems')
                         .add(data)
                         .then(docRef => {
                             console.log('Food item saved to Firebase:', docRef.id);
-                            showSuccessMessage();
-                            loadFoodItems();
+                            // Replace temporary item with real one
+                            replaceItemInDisplay(tempId, docRef.id);
                         })
                         .catch(error => {
                             console.error('Error saving to Firebase:', error);
+                            // Remove optimistic item and show error
+                            removeItemFromDisplay(tempId);
+                            alert('⚠️ Failed to save to cloud. Item saved locally instead.');
                             saveToLocalStorage(data);
                         })
                         .finally(() => {
@@ -1571,6 +1719,8 @@
                 } else {
                     console.log('Saving to localStorage...');
                     saveToLocalStorage(data);
+                    addItemToDisplay(data);
+                    showSuccessMessage();
                     submitBtn.textContent = originalText;
                     submitBtn.disabled = false;
                 }
@@ -1625,8 +1775,6 @@
             savedItems.unshift(formData);
             localStorage.setItem('communityFoodItems', JSON.stringify(savedItems));
             console.log('Food item saved to localStorage');
-            showSuccessMessage();
-            loadFoodItems();
         }
         
         function showSuccessMessage() {
@@ -1640,7 +1788,7 @@
             document.getElementById('chef-access-code').value = '';
             
             showTab('browse');
-            alert('🎉 Your food item has been added to today\'s menu!');
+            showToast('🎉 Your food item has been added to today\'s menu!');
         }
         
         // Handle order form
